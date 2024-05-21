@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nostr Inactive Users Checker</title>
+  <style>
+    #progressContainer {
+      width: 100%;
+      background-color: #f3f3f3;
+      margin-top: 20px;
+    }
+
+    #progressBar {
+      width: 0;
+      height: 30px;
+      background-color: #4caf50;
+      text-align: center;
+      line-height: 30px;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Nostr Inactive Users Checker</h1>
+  <p>Login below to begin checking your nostr follow list for inactive users</p>
+  <button id="loginButton">Log in with Nostr</button>
+  <p id="publicKey">Public Key: </p>
+  <p id="hexKey">Hex Key: </p>
+  
+  <h2>Pubkey Information</h2>
+  <p id="totalPubkeys">Total Pubkeys Found: </p>
+  
+  <h3>Non-Active Pubkeys (Older than 8 months)</h3>
+  <ul id="nonActivePubkeys"></ul>
+  
+  <div id="progressContainer">
+    <div id="progressBar">0%</div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "@nostr-dev-kit/ndk": "^2.8.2"
+  },
+  "devDependencies": {
+    "vite": "^5.2.11"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}
