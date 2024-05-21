@@ -1,4 +1,9 @@
-import { loginWithNostr, getPublicKey, getHexKey } from "./nostrService.js";
+import {
+  loginWithNostr,
+  getPublicKey,
+  getHexKey,
+  createKind3Event,
+} from "./nostrService.js";
 import { processKind3EventWithProgress } from "./pubkeyProcessor.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
@@ -12,7 +17,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     ).textContent = `Public Key: ${publicKey}`;
     document.getElementById("hexKey").textContent = `Hex Key: ${hexKey}`;
 
-    const { totalPubkeys, nonActivePubkeys } =
+    const { totalPubkeys, nonActivePubkeys, activePubkeys } =
       await processKind3EventWithProgress(hexKey);
 
     document.getElementById(
@@ -31,6 +36,15 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     const totalNonActivePubkeys = document.createElement("p");
     totalNonActivePubkeys.textContent = `Total Non-Active Pubkeys: ${nonActivePubkeys.length}`;
     nonActivePubkeysList.appendChild(totalNonActivePubkeys);
+
+    // Add a button to create the new kind 3 event
+    const createButton = document.createElement("button");
+    createButton.textContent = "Create New Kind 3 Event";
+    createButton.addEventListener("click", async () => {
+      await createKind3Event(hexKey, activePubkeys);
+      alert("New kind 3 event created successfully.");
+    });
+    document.body.appendChild(createButton);
 
     alert(
       "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."

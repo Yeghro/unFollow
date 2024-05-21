@@ -1,7 +1,8 @@
-import NDK, { NDKNip07Signer, NDKUser } from "@nostr-dev-kit/ndk";
+import NDK, { NDKNip07Signer, NDKUser, NDKEvent } from "@nostr-dev-kit/ndk";
 
 export let ndk;
 let ndkUser;
+export let nip07signer; // Export the nip07signer variable
 
 export async function loginWithNostr() {
   const relayUrls = [
@@ -9,14 +10,12 @@ export async function loginWithNostr() {
     "wss://nostrpub.yeghro.site",
     "wss://relay.damus.io",
   ];
-
-  const nip07signer = new NDKNip07Signer();
+  nip07signer = new NDKNip07Signer(); // Assign the nip07signer instance to the exported variable
   ndk = new NDK({
     signer: nip07signer,
     explicitRelayUrls: relayUrls,
     autoConnectUserRelays: false,
   });
-
   await ndk.connect();
   console.log("NDK connected");
 
@@ -36,10 +35,10 @@ export function getHexKey() {
   return ndkUser.pubkey;
 }
 
-export async function fetchEvents(filter, timeoutMs = 10000) {
+export async function fetchEvents(filter, timeoutMs = 10000, relayUrl) {
   console.log("Fetching events with filter:", filter);
   const events = await ndk.fetchEvents(filter, {
-    relays: ndk.explicitRelayUrls,
+    relays: relayUrl ? [relayUrl] : ndk.explicitRelayUrls,
     closeOnEose: true,
     timeoutMs,
   });
@@ -56,4 +55,17 @@ export async function fetchEvent(filter, timeoutMs = 10000) {
   });
   console.log("Fetched event:", event);
   return event;
+}
+
+export async function createKind3Event(hexKey, activePubkeys) {
+  const kind3Event = new NDKEvent(ndk, {
+    kind: 3,
+    tags: activePubkeys.map((pubkey) => ["p", pubkey]),
+    content: "",
+    created_at: Math.floor(Date.now() / 1000),
+    pubkey: hexKey, // Ensure the hexKey is used as the author's pubkey
+  });
+  await kind3Event.sign(nip07signer); // Use nip07signer instead of ndk.signer
+  await kind3Event.publish();
+  console.log("Kind 3 event created and published:", kind3Event);
 }

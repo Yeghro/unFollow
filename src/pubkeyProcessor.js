@@ -68,15 +68,22 @@ export async function processKind3EventWithProgress(hexKey) {
     console.log("Events per pubkey:", latestEvents);
     const nonActivePubkeys = getNonActivePubkeys(latestEvents, pubkeys);
 
+    // Separate active and non-active pubkeys
+    const activePubkeys = pubkeys.filter(
+      (pubkey) => !nonActivePubkeys.includes(pubkey)
+    );
+
     return {
       totalPubkeys: pubkeys.length,
       nonActivePubkeys: nonActivePubkeys,
+      activePubkeys: activePubkeys,
     };
   } else {
     console.log("No kind 3 events found.");
     return {
       totalPubkeys: 0,
       nonActivePubkeys: [],
+      activePubkeys: [],
     };
   }
 }
