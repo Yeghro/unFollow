@@ -1,38 +1,4 @@
-import { fetchEvents } from "./nostrService.js";
-import { NDKEvent } from "@nostr-dev-kit/ndk";
-
-// Helper function to delay execution
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Queue to control the number of concurrent requests
-class Queue {
-  constructor(concurrency) {
-    this.concurrency = concurrency;
-    this.running = 0;
-    this.queue = [];
-  }
-
-  run(task) {
-    return new Promise((resolve, reject) => {
-      this.queue.push(() => task().then(resolve, reject));
-      this.next();
-    });
-  }
-
-  next() {
-    if (this.running < this.concurrency && this.queue.length) {
-      const task = this.queue.shift();
-      this.running++;
-      task().finally(() => {
-        this.running--;
-        this.next();
-      });
-    }
-  }
-}
-
-// Set concurrency level
-const queue = new Queue(600); // Adjust concurrency level here
+import { ndk, fetchEvents } from "./nostrService.js";
 
 export async function processKind3EventWithProgress(hexKey) {
   const filter = { kinds: [3], authors: [hexKey] };
@@ -111,51 +77,117 @@ export async function fetchLatestKind1EventsWithRelays(
   updateProgress
 ) {
   const latestEvents = [];
+  const processedPubkeys = new Set(); // To track processed pubkeys
   const relayUrls = [
     "wss://relay.primal.net",
     "wss://nostrpub.yeghro.site",
     "wss://relay.damus.io",
   ];
+  const connectionsPerRelay = 6;
+  const totalConnections = connectionsPerRelay * relayUrls.length;
+  const maxRetries = 3;
 
-  for (const pubkey of pubkeys) {
-    await queue.run(async () => {
-      const filter = { kinds: [1], authors: [pubkey], limit: 1 };
-      const relayUrl = relayUrls[latestEvents.length % relayUrls.length];
+  class ConnectionQueue {
+    constructor(concurrency) {
+      this.concurrency = concurrency;
+      this.queue = [];
+      this.activeConnections = 0;
+    }
+
+    async run(task) {
+      return new Promise((resolve, reject) => {
+        this.queue.push({ task, resolve, reject });
+        this.next();
+      });
+    }
+
+    next() {
+      if (this.activeConnections < this.concurrency && this.queue.length) {
+        const { task, resolve, reject } = this.queue.shift();
+        this.activeConnections++;
+        task()
+          .then(resolve, reject)
+          .finally(() => {
+            this.activeConnections--;
+            this.next();
+          });
+      }
+    }
+  }
+
+  async function fetchEventForPubkeyFromRelay(pubkey, relayUrl, retries = 0) {
+    const filter = { kinds: [1], authors: [pubkey], limit: 1 };
+
+    console.log(
+      `Fetching latest kind 1 event for pubkey ${pubkey} from relay ${relayUrl} with filter:`,
+      filter
+    );
+
+    try {
+      const events = await fetchEvents(filter, 10000, relayUrl);
       console.log(
-        `Fetching latest kind 1 event for pubkey ${pubkey} from relay ${relayUrl} with filter:`,
-        filter
+        `Fetched events for pubkey ${pubkey} from relay ${relayUrl}:`,
+        events
       );
-      try {
-        const events = await fetchEvents(filter, 10000, relayUrl);
-        console.log(
-          `Fetched events for pubkey ${pubkey} from relay ${relayUrl}:`,
-          events
-        );
-        if (events.size > 0) {
-          const event = events.values().next().value;
-          const ndkEvent = new NDKEvent(event);
+
+      if (events && events.size > 0) {
+        const event = events.values().next().value;
+        if (event) {
           console.log(
             `Fetched event for pubkey ${pubkey} from relay ${relayUrl}:`,
-            ndkEvent
+            event
           );
-          latestEvents.push(ndkEvent);
-        } else {
-          console.log(
-            `No kind 1 event found for pubkey ${pubkey} from relay ${relayUrl}`
-          );
-          latestEvents.push(null);
+          return event;
         }
-      } catch (error) {
-        console.error(
-          `Error fetching kind 1 event for pubkey ${pubkey} from relay ${relayUrl}:`,
-          error
-        );
-        latestEvents.push(null);
       }
-      updateProgress();
-    });
-    await delay(20); // Adjust delay as needed
+    } catch (error) {
+      console.error(
+        `Error fetching kind 1 event for pubkey ${pubkey} from relay ${relayUrl}:`,
+        error
+      );
+      if (retries < maxRetries) {
+        console.log(`Retrying... (${retries + 1}/${maxRetries})`);
+        return fetchEventForPubkeyFromRelay(pubkey, relayUrl, retries + 1);
+      }
+    }
+
+    return null;
   }
+
+  async function fetchEventForPubkey(pubkey) {
+    for (const relayUrl of relayUrls) {
+      const event = await fetchEventForPubkeyFromRelay(pubkey, relayUrl);
+      if (event) {
+        return event;
+      }
+    }
+    return null;
+  }
+
+  const connectionQueue = new ConnectionQueue(totalConnections);
+
+  async function processPubkeys() {
+    const chunkSize = Math.ceil(pubkeys.length / totalConnections);
+    for (let i = 0; i < pubkeys.length; i += chunkSize) {
+      const pubkeysChunk = pubkeys.slice(i, i + chunkSize);
+      for (const pubkey of pubkeysChunk) {
+        if (!processedPubkeys.has(pubkey)) {
+          processedPubkeys.add(pubkey);
+          await connectionQueue.run(() =>
+            fetchEventForPubkey(pubkey).then((event) => {
+              if (event) {
+                latestEvents.push(event);
+              }
+              updateProgress(latestEvents.length);
+            })
+          );
+        }
+      }
+    }
+  }
+
+  await processPubkeys();
+
   return latestEvents;
 }
 
