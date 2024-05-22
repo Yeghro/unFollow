@@ -4,12 +4,15 @@ export let ndk;
 let ndkUser;
 export let nip07signer; // Export the nip07signer variable
 
+export let relayUrls = [
+  "wss://relay.nostr.band",
+  "wss://relay.primal.net",
+  "wss://relay.damus.io",
+  "wss://nostr.wine",
+  "wss://relay.snort.social",
+];
+
 export async function loginWithNostr() {
-  const relayUrls = [
-    "wss://relay.primal.net",
-    "wss://nostrpub.yeghro.site",
-    "wss://relay.damus.io",
-  ];
   nip07signer = new NDKNip07Signer(); // Assign the nip07signer instance to the exported variable
   ndk = new NDK({
     signer: nip07signer,

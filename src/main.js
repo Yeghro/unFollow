@@ -37,14 +37,14 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     totalNonActivePubkeys.textContent = `Total Non-Active Pubkeys: ${nonActivePubkeys.length}`;
     nonActivePubkeysList.appendChild(totalNonActivePubkeys);
 
-    // Add a button to create the new kind 3 event
-    const createButton = document.createElement("button");
-    createButton.textContent = "Create New Kind 3 Event";
+    // Show the existing button for creating the new kind 3 event
+    const createButton = document.getElementById("createKind3EventButton");
+    createButton.style.display = "block"; // Make the button visible
+
     createButton.addEventListener("click", async () => {
       await createKind3Event(hexKey, activePubkeys);
       alert("New kind 3 event created successfully.");
     });
-    document.body.appendChild(createButton);
 
     alert(
       "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."
