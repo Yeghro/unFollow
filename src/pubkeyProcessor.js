@@ -14,6 +14,12 @@ export async function processKind3EventWithProgress(hexKey) {
     const pubkeys = extractPubkeysFromKind3Event(events);
     console.log("Pubkeys extracted:", pubkeys);
 
+    // Display the total number of pubkeys found immediately
+    const totalPubkeys = pubkeys.length;
+    document.getElementById(
+      "totalPubkeys"
+    ).textContent = `Total Pubkeys Found: ${totalPubkeys}`;
+
     const progressBar = document.getElementById("progressBar");
     progressBar.style.width = "0%";
     progressBar.textContent = "0%";
@@ -25,7 +31,7 @@ export async function processKind3EventWithProgress(hexKey) {
       completed++;
       const percent = Math.round((completed / total) * 100);
       progressBar.style.width = `${percent}%`;
-      progressBar.textContent = `${percent}%`; // Ensure this line is updating the progress text
+      progressBar.textContent = `${percent}%`;
     };
 
     const latestEvents = await fetchLatestKind1EventsWithRelays(
@@ -47,6 +53,9 @@ export async function processKind3EventWithProgress(hexKey) {
     };
   } else {
     console.log("No kind 3 events found.");
+    document.getElementById(
+      "totalPubkeys"
+    ).textContent = `Total Pubkeys Found: 0`;
     return {
       totalPubkeys: 0,
       nonActivePubkeys: [],
@@ -126,7 +135,7 @@ export async function fetchLatestKind1EventsWithRelays(
     } else {
       latestEvents.push({ pubkey, event: null });
     }
-    updateProgress(latestEvents.length);
+    updateProgress();
   }
 
   return latestEvents;

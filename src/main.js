@@ -7,8 +7,10 @@ import {
 import { processKind3EventWithProgress } from "./pubkeyProcessor.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
+  document.getElementById("loadingSpinner").style.display = "block";
   try {
     await loginWithNostr();
+    document.getElementById("loadingSpinner").style.display = "none";
     const publicKey = getPublicKey();
     const hexKey = getHexKey();
 
@@ -20,6 +22,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     const { totalPubkeys, nonActivePubkeys, activePubkeys } =
       await processKind3EventWithProgress(hexKey);
 
+    // Display the total number of pubkeys immediately after fetching the kind 3 event
     document.getElementById(
       "totalPubkeys"
     ).textContent = `Total Pubkeys Found: ${totalPubkeys}`;
@@ -31,26 +34,29 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       listItem.textContent = pubkey;
       nonActivePubkeysList.appendChild(listItem);
     });
-
-    // Add the total count of non-active pubkeys at the end of the list
     const totalNonActivePubkeys = document.createElement("p");
     totalNonActivePubkeys.textContent = `Total Non-Active Pubkeys: ${nonActivePubkeys.length}`;
     nonActivePubkeysList.appendChild(totalNonActivePubkeys);
 
-    // Show the existing button for creating the new kind 3 event
     const createButton = document.getElementById("createKind3EventButton");
-    createButton.style.display = "block"; // Make the button visible
-
+    createButton.style.display = "block";
     createButton.addEventListener("click", async () => {
-      await createKind3Event(hexKey, activePubkeys);
-      alert("New kind 3 event created successfully.");
+      if (confirm("Are you sure you want to create a new kind 3 event?")) {
+        await createKind3Event(hexKey, activePubkeys);
+        alert("New kind 3 event created successfully.");
+      }
     });
 
     alert(
       "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."
     );
   } catch (error) {
+    document.getElementById("loadingSpinner").style.display = "none";
+    if (error.message.includes("cancel")) {
+      alert("Login process was canceled.");
+    } else {
+      alert("Network issue occurred. Please try again later.");
+    }
     console.error("Error:", error);
-    alert("An error occurred. Check the console for details.");
   }
 });

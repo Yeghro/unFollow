@@ -1,0 +1,93 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #000000;
+    margin: 0;
+    padding: 0;
+  }
+  
+  h1, h2, h4 {
+    color: rgb(166, 124, 46);
+    text-align: center;
+  }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  ul li {
+    padding: 10px;
+    background-color: rgb(46, 0, 46);
+    margin-bottom: 5px;
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: rgb(193, 177, 148);
+  }
+  
+  ul li:nth-child(even) {
+    background-color: rgb(46, 0, 46);
+  }
+  
+  ul li:hover {
+    background-color: rgb(128, 83, 0);
+  }
+
+  
+  p {
+    color: rgb(193, 177, 148);
+    padding: 0 10px;
+    text-align: center;
+  }
+  
+  button {
+    background: linear-gradient(to right, orange, purple);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: block;
+    margin: 10px auto;
+    font-size: 16px;
+    transition: background 0.3s ease;
+  }
+  
+  button:hover {
+    background: linear-gradient(to right, purple, orange);
+  }
+  
+  #progressContainer {
+    width: 80%;
+    background-color: #1a1a1a;
+    margin: 20px auto;
+    border-radius: 5px;
+  }
+  
+  #progressBar {
+    width: 0%;
+    height: 30px;
+    background: linear-gradient(to right, orange, purple);
+    border-radius: 5px;
+    text-align: center;
+    line-height: 30px;
+    color: white;
+    transition: width 0.3s ease;
+  }
+  
+  .spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #000;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    display: none;
+    margin: 20px auto;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
