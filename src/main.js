@@ -8,19 +8,24 @@ import { processKind3EventWithProgress } from "./pubkeyProcessor.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
   document.getElementById("loadingSpinner").style.display = "block";
+
   try {
     await loginWithNostr();
     document.getElementById("loadingSpinner").style.display = "none";
+
     const publicKey = getPublicKey();
     const hexKey = getHexKey();
-
     document.getElementById(
       "publicKey"
     ).textContent = `Public Key: ${publicKey}`;
     document.getElementById("hexKey").textContent = `Hex Key: ${hexKey}`;
 
+    // Retrieve the value of the inactiveMonths input field
+    const inactiveMonthsInput = document.getElementById("inactiveMonths");
+    const inactiveMonths = parseInt(inactiveMonthsInput.value);
+
     const { totalPubkeys, nonActivePubkeys, activePubkeys } =
-      await processKind3EventWithProgress(hexKey);
+      await processKind3EventWithProgress(hexKey, inactiveMonths);
 
     // Display the total number of pubkeys immediately after fetching the kind 3 event
     document.getElementById(
@@ -29,11 +34,13 @@ document.getElementById("loginButton").addEventListener("click", async () => {
 
     const nonActivePubkeysList = document.getElementById("nonActivePubkeys");
     nonActivePubkeysList.innerHTML = ""; // Clear previous list
+
     nonActivePubkeys.forEach((pubkey) => {
       const listItem = document.createElement("li");
       listItem.textContent = pubkey;
       nonActivePubkeysList.appendChild(listItem);
     });
+
     const totalNonActivePubkeys = document.createElement("p");
     totalNonActivePubkeys.textContent = `Total Non-Active Pubkeys: ${nonActivePubkeys.length}`;
     nonActivePubkeysList.appendChild(totalNonActivePubkeys);

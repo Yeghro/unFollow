@@ -8,11 +8,14 @@
 </head>
 <body>
   <h1>Nostr Inactive Users Checker</h1>
-  <p>! CAUTION !
+    <p>! CAUTION !
     Before using this app, please consider backing up your follow list by adding wss://hist.nostr.land to your relay 
-    list, then follow someone or unfollow someone to update your relay list.... Just in case, because your never know</p>
-
-  <p>
+    list, then follow someone or unfollow someone to update your relay list.... Just in case, cause your never know
+  </p>
+  <div class="input-container">
+    <label for="inactiveMonths">Inactive Months:</label>
+    <input type="number" id="inactiveMonths" name="inactiveMonths" min="1" max="12" value="8">
+  </div>   <p>
     Login below to begin checking your nostr follow list for inactive users.
   </p>
   <button id="loginButton">Log in with Nostr</button>
@@ -23,7 +26,7 @@
   <h2>Pubkey Information</h2>
   <p id="totalPubkeys">Total Pubkeys Found:</p>
 
-  <h4>Non-Active Pubkeys (Older than 8 months)</h4>
+  <h4>Non-Active Pubkeys</h4>
   <ul id="nonActivePubkeys"></ul>
 
   <div id="progressContainer">

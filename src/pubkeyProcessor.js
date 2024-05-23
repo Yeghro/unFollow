@@ -1,7 +1,7 @@
 import { ndk, fetchEvents, relayUrls } from "./nostrService.js";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
 
-export async function processKind3EventWithProgress(hexKey) {
+export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
   const filter = { kinds: [3], authors: [hexKey] };
   console.log("Filter for kind 3 events:", filter);
 
@@ -39,7 +39,11 @@ export async function processKind3EventWithProgress(hexKey) {
       updateProgress
     );
     console.log("Events per pubkey:", latestEvents);
-    const nonActivePubkeys = getNonActivePubkeys(latestEvents, pubkeys);
+    const nonActivePubkeys = getNonActivePubkeys(
+      latestEvents,
+      pubkeys,
+      inactiveMonths
+    );
 
     // Separate active and non-active pubkeys
     const activePubkeys = pubkeys.filter(
@@ -141,23 +145,24 @@ export async function fetchLatestKind1EventsWithRelays(
   return latestEvents;
 }
 
-function getNonActivePubkeys(latestEvents, pubkeys) {
+function getNonActivePubkeys(latestEvents, pubkeys, inactiveMonths) {
   const currentTimestamp = Math.floor(Date.now() / 1000);
-  const eightMonthsAgo = currentTimestamp - 8 * 30 * 24 * 60 * 60;
+  const inactiveTimestamp =
+    currentTimestamp - inactiveMonths * 30 * 24 * 60 * 60;
 
   const nonActivePubkeys = [];
 
   latestEvents.forEach(({ pubkey, event }) => {
     if (event) {
       const createdAt = event.created_at;
-      const isOlderThanEightMonths = createdAt < eightMonthsAgo;
+      const isInactive = createdAt < inactiveTimestamp;
       console.log(
         `Latest event for pubkey ${pubkey}:`,
         event.rawEvent(),
-        `Older than 8 months: ${isOlderThanEightMonths}`
+        `Older than ${inactiveMonths} months: ${isInactive}`
       );
 
-      if (isOlderThanEightMonths) {
+      if (isInactive) {
         nonActivePubkeys.push(pubkey);
       }
     } else {
