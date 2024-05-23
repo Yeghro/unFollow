@@ -38,9 +38,24 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     nonActivePubkeys.forEach((pubkey) => {
       const listItem = document.createElement("li");
       listItem.textContent = pubkey;
+      listItem.style.padding = "10px";
+      listItem.style.backgroundColor = "rgb(46, 0, 46)";
+      listItem.style.marginBottom = "5px";
+      listItem.style.borderRadius = "4px";
+      listItem.style.fontFamily = "Arial, sans-serif";
+      listItem.style.fontSize = "14px";
+      listItem.style.color = "rgb(193, 177, 148)";
+
+      listItem.addEventListener("mouseover", function () {
+        this.style.backgroundColor = "rgb(128, 83, 0)";
+      });
+
+      listItem.addEventListener("mouseout", function () {
+        this.style.backgroundColor = "rgb(46, 0, 46)";
+      });
+
       nonActivePubkeysList.appendChild(listItem);
     });
-
     const totalNonActivePubkeys = document.createElement("p");
     totalNonActivePubkeys.textContent = `Total Non-Active Pubkeys: ${nonActivePubkeys.length}`;
     nonActivePubkeysList.appendChild(totalNonActivePubkeys);
