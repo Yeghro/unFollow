@@ -1,4 +1,4 @@
-import { ndk, fetchEvents, relayUrls, connectToNDK } from "./nostrService.js";
+import { ndk, fetchEvents, connectToNDK } from "./nostrService.js";
 import { NDKEvent, NDKUser } from "@nostr-dev-kit/ndk";
 import {
   extractPubkeysFromKind3Event,

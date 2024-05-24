@@ -8,11 +8,6 @@ import {
   processKind3EventWithProgress,
   processManualPubkey,
 } from "./pubkeyProcessor.js";
-import {
-  extractPubkeysFromKind3Event,
-  fetchLatestKind1EventsWithRelays,
-  getNonActivePubkeys,
-} from "./nostrUtils.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
   document.getElementById("loadingSpinner").style.display = "block";
