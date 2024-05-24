@@ -1,5 +1,5 @@
-import { ndk, fetchEvents, relayUrls } from "./nostrService.js";
-import { NDKEvent } from "@nostr-dev-kit/ndk";
+import { ndk, fetchEvents, relayUrls, connectToNDK } from "./nostrService.js";
+import { NDKEvent, NDKUser } from "@nostr-dev-kit/ndk";
 import {
   extractPubkeysFromKind3Event,
   fetchLatestKind1EventsWithRelays,
@@ -9,14 +9,12 @@ import {
 export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
   const filter = { kinds: [3], authors: [hexKey] };
   console.log("Filter for kind 3 events:", filter);
-
   const events = await fetchEvents(filter);
   console.log("Fetched kind 3 events:", events);
 
   if (events && events.size > 0) {
     console.log("Number of kind 3 events found:", events.size);
-
-    const pubkeys = extractPubkeysFromKind3Event(events);
+    const pubkeys = extractPubkeysFromKind3Event(Array.from(events.values()));
     console.log("Pubkeys extracted:", pubkeys);
 
     // Display the total number of pubkeys found immediately
@@ -31,7 +29,6 @@ export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
 
     const total = pubkeys.length;
     let completed = 0;
-
     const updateProgress = () => {
       completed++;
       const percent = Math.round((completed / total) * 100);
@@ -44,6 +41,7 @@ export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
       updateProgress
     );
     console.log("Events per pubkey:", latestEvents);
+
     const nonActivePubkeys = getNonActivePubkeys(
       latestEvents,
       pubkeys,
@@ -65,10 +63,27 @@ export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
     document.getElementById(
       "totalPubkeys"
     ).textContent = `Total Pubkeys Found: 0`;
-    return {
-      totalPubkeys: 0,
-      nonActivePubkeys: [],
-      activePubkeys: [],
-    };
+    return { totalPubkeys: 0, nonActivePubkeys: [], activePubkeys: [] };
   }
+}
+
+export async function processManualPubkey(manualPubkey, inactiveMonths) {
+  let hexKey;
+  if (manualPubkey.startsWith("npub")) {
+    const ndkUser = new NDKUser({ npub: manualPubkey });
+    hexKey = ndkUser.pubkey;
+  } else {
+    hexKey = manualPubkey;
+  }
+
+  await connectToNDK(); // Call connectToNDK to initialize and connect the ndk object
+
+  const { totalPubkeys, nonActivePubkeys, activePubkeys } =
+    await processKind3EventWithProgress(hexKey, inactiveMonths);
+
+  return {
+    totalPubkeys,
+    nonActivePubkeys,
+    activePubkeys,
+  };
 }

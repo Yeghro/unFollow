@@ -12,22 +12,36 @@ export let relayUrls = [
   "wss://relay.snort.social",
 ];
 
+export async function connectToNDK() {
+  if (!ndk || !ndk.isConnected()) {
+    nip07signer = new NDKNip07Signer();
+    ndk = new NDK({
+      signer: nip07signer,
+      explicitRelayUrls: relayUrls,
+      autoConnectUserRelays: false,
+    });
+    await ndk.connect();
+    console.log("NDK connected");
+  } else {
+    console.log("NDK already connected");
+  }
+}
+
 export async function loginWithNostr() {
-  nip07signer = new NDKNip07Signer(); // Assign the nip07signer instance to the exported variable
-  ndk = new NDK({
-    signer: nip07signer,
-    explicitRelayUrls: relayUrls,
-    autoConnectUserRelays: false,
-  });
-  await ndk.connect();
-  console.log("NDK connected");
-
-  const user = await nip07signer.user();
-  console.log("User public key obtained:", user);
-
-  ndkUser = new NDKUser({ npub: user.npub });
-  ndkUser.ndk = ndk;
-  console.log("NDK user initialized:", ndkUser);
+  try {
+    await connectToNDK();
+    const user = await nip07signer.user();
+    console.log("User public key obtained:", user);
+    ndkUser = new NDKUser({ npub: user.npub });
+    ndkUser.ndk = ndk;
+    console.log("NDK user initialized:", ndkUser);
+  } catch (error) {
+    console.error("Error during login:", error);
+    // Handle the error appropriately, such as displaying a user-friendly message
+    alert(
+      "Failed to login with Nostr. Please ensure that the NIP-07 signer is available and properly initialized."
+    );
+  }
 }
 
 export function getPublicKey() {
