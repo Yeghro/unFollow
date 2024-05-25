@@ -2,7 +2,7 @@ import NDK, { NDKNip07Signer, NDKUser, NDKEvent } from "@nostr-dev-kit/ndk";
 
 export let ndk;
 let ndkUser;
-export let nip07signer; // Export the nip07signer variable
+export let nip07signer;
 
 export let relayUrls = [
   "wss://relay.nostr.band",
@@ -10,18 +10,26 @@ export let relayUrls = [
   "wss://relay.damus.io",
   "wss://nostr.wine",
   "wss://relay.snort.social",
+  "wss://nos.lol",
+  "wss://eden.nostr.land",
+  "wss://nostr.bitcoiner.social",
 ];
 
 export async function connectToNDK() {
   if (!ndk || !ndk.isConnected()) {
-    nip07signer = new NDKNip07Signer();
-    ndk = new NDK({
-      signer: nip07signer,
-      explicitRelayUrls: relayUrls,
-      autoConnectUserRelays: false,
-    });
-    await ndk.connect();
-    console.log("NDK connected");
+    try {
+      nip07signer = new NDKNip07Signer();
+      ndk = new NDK({
+        signer: nip07signer,
+        explicitRelayUrls: relayUrls,
+        autoConnectUserRelays: false,
+      });
+      await ndk.connect();
+      console.log("NDK connected");
+    } catch (error) {
+      console.error("Failed to connect to NDK:", error);
+      // Add logic to handle reconnection or notify the user
+    }
   } else {
     console.log("NDK already connected");
   }
@@ -45,10 +53,16 @@ export async function loginWithNostr() {
 }
 
 export function getPublicKey() {
+  if (!ndkUser) {
+    throw new Error("NDK user not initialized. Please login first.");
+  }
   return ndkUser.npub;
 }
 
 export function getHexKey() {
+  if (!ndkUser) {
+    throw new Error("NDK user not initialized. Please login first.");
+  }
   return ndkUser.pubkey;
 }
 
@@ -81,6 +95,12 @@ export async function createKind3Event(hexKey, activePubkeys) {
     return;
   }
 
+  // Validate hexKey
+  if (!hexKey) {
+    console.error("Invalid hexKey. Aborting event creation.");
+    return;
+  }
+
   const kind3Event = new NDKEvent(ndk, {
     kind: 3,
     tags: activePubkeys.map((pubkey) => ["p", pubkey]),
@@ -89,7 +109,11 @@ export async function createKind3Event(hexKey, activePubkeys) {
     pubkey: hexKey, // Ensure the hexKey is used as the author's pubkey
   });
 
-  await kind3Event.sign(nip07signer); // Use nip07signer instead of ndk.signer
-  await kind3Event.publish();
-  console.log("Kind 3 event created and published:", kind3Event);
+  try {
+    await kind3Event.sign(nip07signer); // Use nip07signer instead of ndk.signer
+    await kind3Event.publish();
+    console.log("Kind 3 event created and published:", kind3Event);
+  } catch (error) {
+    console.error("Failed to create or publish Kind 3 event:", error);
+  }
 }

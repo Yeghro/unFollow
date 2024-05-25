@@ -1,5 +1,5 @@
 import { ndk, fetchEvents, connectToNDK } from "./nostrService.js";
-import { NDKEvent, NDKUser } from "@nostr-dev-kit/ndk";
+import { NDKUser } from "@nostr-dev-kit/ndk";
 import {
   extractPubkeysFromKind3Event,
   fetchLatestKind1EventsWithRelays,
@@ -12,28 +12,32 @@ export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
   const events = await fetchEvents(filter);
   console.log("Fetched kind 3 events:", events);
 
-  if (events && events.size > 0) {
-    console.log("Number of kind 3 events found:", events.size);
-    const pubkeys = extractPubkeysFromKind3Event(Array.from(events.values()));
+  if (events && (events.size > 0 || events.length > 0)) {
+    console.log("Number of kind 3 events found:", events.size || events.length);
+    const pubkeys = extractPubkeysFromKind3Event(events);
     console.log("Pubkeys extracted:", pubkeys);
 
     // Display the total number of pubkeys found immediately
-    const totalPubkeys = pubkeys.length;
-    document.getElementById(
-      "totalPubkeys"
-    ).textContent = `Total Pubkeys Found: ${totalPubkeys}`;
+    const totalPubkeysElement = document.getElementById("totalPubkeys");
+    if (totalPubkeysElement) {
+      totalPubkeysElement.textContent = `Total Pubkeys Found: ${pubkeys.length}`;
+    }
 
     const progressBar = document.getElementById("progressBar");
-    progressBar.style.width = "0%";
-    progressBar.textContent = "0%";
+    if (progressBar) {
+      progressBar.style.width = "0%";
+      progressBar.textContent = "0%";
+    }
 
     const total = pubkeys.length;
     let completed = 0;
     const updateProgress = () => {
       completed++;
       const percent = Math.round((completed / total) * 100);
-      progressBar.style.width = `${percent}%`;
-      progressBar.textContent = `${percent}%`;
+      if (progressBar) {
+        progressBar.style.width = `${percent}%`;
+        progressBar.textContent = `${percent}%`;
+      }
     };
 
     const latestEvents = await fetchLatestKind1EventsWithRelays(
@@ -42,11 +46,7 @@ export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
     );
     console.log("Events per pubkey:", latestEvents);
 
-    const nonActivePubkeys = getNonActivePubkeys(
-      latestEvents,
-      pubkeys,
-      inactiveMonths
-    );
+    const nonActivePubkeys = getNonActivePubkeys(latestEvents, inactiveMonths);
 
     // Separate active and non-active pubkeys
     const activePubkeys = pubkeys.filter(
@@ -60,9 +60,10 @@ export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
     };
   } else {
     console.log("No kind 3 events found.");
-    document.getElementById(
-      "totalPubkeys"
-    ).textContent = `Total Pubkeys Found: 0`;
+    const totalPubkeysElement = document.getElementById("totalPubkeys");
+    if (totalPubkeysElement) {
+      totalPubkeysElement.textContent = `Total Pubkeys Found: 0`;
+    }
     return { totalPubkeys: 0, nonActivePubkeys: [], activePubkeys: [] };
   }
 }
