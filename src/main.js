@@ -9,12 +9,26 @@ import {
   processManualPubkey,
 } from "./pubkeyProcessor.js";
 
+// Function to update and display user profile card
+function updateUserProfileCard(profile) {
+  const userProfileCard = document.getElementById("userProfileCard");
+  const userName = document.getElementById("userName");
+  const userBio = document.getElementById("userBio");
+  const userPicture = document.getElementById("userPicture");
+
+  userName.textContent = profile.name || "No name provided";
+  userBio.textContent = profile.about || "No bio provided";
+  userPicture.src = profile.image || "default-profile.png";
+  userProfileCard.style.display = "block";
+}
+
 document.getElementById("loginButton").addEventListener("click", async () => {
   document.getElementById("loadingSpinner").style.display = "block";
 
   try {
-    await loginWithNostr();
+    const profile = await loginWithNostr();
     document.getElementById("loadingSpinner").style.display = "none";
+    updateUserProfileCard(profile);
 
     const publicKey = getPublicKey();
     const hexKey = getHexKey();
@@ -62,7 +76,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     } else {
       alert("Network issue occurred. Please try again later.");
     }
-    console.error("Error:", error);
+    // console.error("Error:", error);
   }
 });
 
@@ -93,7 +107,7 @@ document
       } catch (error) {
         document.getElementById("loadingSpinner").style.display = "none";
         alert("An error occurred while processing the manual pubkey.");
-        console.error("Error:", error);
+        // console.error("Error:", error);
       }
     } else {
       alert("Please enter a valid pubkey/npub.");

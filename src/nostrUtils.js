@@ -38,17 +38,17 @@ export async function fetchLatestKind1EventsWithRelays(
   async function fetchEventForPubkeyFromRelay(pubkey, relayUrl, retries = 0) {
     const filter = { kinds: [1, 0], authors: [pubkey], limit: 1 };
 
-    console.log(
-      `Fetching latest kind 1 and kind 0 events for pubkey ${pubkey} from relay ${relayUrl} with filter:`,
-      filter
-    );
+    // console.log(
+    //   `Fetching latest kind 1 and kind 0 events for pubkey ${pubkey} from relay ${relayUrl} with filter:`,
+    //   filter
+    // );
 
     try {
       const events = await ndk.fetchEvents(filter, relayUrl); // Assuming ndk.fetchEvents can take relayUrl as a parameter
 
       if (events && events.size > 0) {
         const event = new NDKEvent(ndk, events.values().next().value); // Wrapped in NDKEvent
-        console.log(`Fetched event for pubkey ${pubkey}:`, event);
+        // console.log(`Fetched event for pubkey ${pubkey}:`, event);
         return event;
       }
     } catch (error) {
@@ -57,7 +57,7 @@ export async function fetchLatestKind1EventsWithRelays(
         error
       );
       if (retries < maxRetries) {
-        console.log(`Retrying... (${retries + 1}/${maxRetries})`);
+        // console.log(`Retrying... (${retries + 1}/${maxRetries})`);
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         return fetchEventForPubkeyFromRelay(pubkey, relayUrl, retries + 1);
       }
@@ -100,18 +100,18 @@ export function getNonActivePubkeys(latestEvents, inactiveMonths) {
     if (event) {
       const createdAt = event.created_at;
       const isInactive = createdAt < inactiveTimestamp;
-      console.log(
-        `Latest event for pubkey ${pubkey}:`,
-        event.rawEvent(),
-        `Older than ${inactiveMonths} months: ${isInactive}`
-      );
+      // console.log(
+      //   `Latest event for pubkey ${pubkey}:`,
+      //   event.rawEvent(),
+      //   `Older than ${inactiveMonths} months: ${isInactive}`
+      // );
 
       if (isInactive) {
         nonActivePubkeys.push(pubkey);
       }
     } else {
-      console.log(`No kind 1 event found for pubkey ${pubkey}`);
-      nonActivePubkeys.push(pubkey);
+      //     console.log(`No kind 1 event found for pubkey ${pubkey}`);
+      //     nonActivePubkeys.push(pubkey);
     }
   });
 

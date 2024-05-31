@@ -140,3 +140,23 @@ button:hover {
 .tablink.active {
   background-color: #ccc;
 }
+
+/* Styles for the user profile card */
+.profile-card {
+  background-color: rgb(46, 0, 46);
+  color: rgb(193, 177, 148);
+  padding: 20px;
+  margin: 20px auto;
+  border-radius: 8px;
+  text-align: center;
+  width: 300px;
+}
+
+.profile-card img {
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+
+.profile-card h2 {
+  color: rgb(166, 124, 46);
+}

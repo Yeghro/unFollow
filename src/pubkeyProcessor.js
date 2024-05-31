@@ -8,14 +8,14 @@ import {
 
 export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
   const filter = { kinds: [3], authors: [hexKey] };
-  console.log("Filter for kind 3 events:", filter);
+  // console.log("Filter for kind 3 events:", filter);
   const events = await fetchEvents(filter);
-  console.log("Fetched kind 3 events:", events);
+  // console.log("Fetched kind 3 events:", events);
 
   if (events && (events.size > 0 || events.length > 0)) {
-    console.log("Number of kind 3 events found:", events.size || events.length);
+    // console.log("Number of kind 3 events found:", events.size || events.length);
     const pubkeys = extractPubkeysFromKind3Event(events);
-    console.log("Pubkeys extracted:", pubkeys);
+    // console.log("Pubkeys extracted:", pubkeys);
 
     // Display the total number of pubkeys found immediately
     const totalPubkeysElement = document.getElementById("totalPubkeys");
@@ -44,7 +44,7 @@ export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
       pubkeys,
       updateProgress
     );
-    console.log("Events per pubkey:", latestEvents);
+    // console.log("Events per pubkey:", latestEvents);
 
     const nonActivePubkeys = getNonActivePubkeys(latestEvents, inactiveMonths);
 
@@ -75,7 +75,7 @@ export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
       kind0Events: kind0Events, // Added kind 0 events for further use
     };
   } else {
-    console.log("No kind 3 events found.");
+    // console.log("No kind 3 events found.");
     const totalPubkeysElement = document.getElementById("totalPubkeys");
     if (totalPubkeysElement) {
       totalPubkeysElement.textContent = `Total Pubkeys Found: 0`;
