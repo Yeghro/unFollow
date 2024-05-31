@@ -94,18 +94,18 @@ export function getNonActivePubkeys(latestEvents, inactiveMonths) {
     if (event) {
       const createdAt = event.created_at;
       const isInactive = createdAt < inactiveTimestamp;
-      // console.log(
-      //   `Latest event for pubkey ${pubkey}:`,
-      //   event.rawEvent(),
-      //   `Older than ${inactiveMonths} months: ${isInactive}`
-      // );
+      console.log(
+        `Latest event for pubkey ${pubkey}:`,
+        event.rawEvent(),
+        `Older than ${inactiveMonths} months: ${isInactive}`
+      );
 
       if (isInactive) {
         nonActivePubkeys.push(pubkey);
       }
     } else {
-      //     console.log(`No kind 1 event found for pubkey ${pubkey}`);
-      //     nonActivePubkeys.push(pubkey);
+      console.log(`No kind 1 event found for pubkey ${pubkey}`);
+      nonActivePubkeys.push(pubkey);
     }
   });
 

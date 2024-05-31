@@ -49,7 +49,7 @@
       <p id="userName"></p>
       <p id="userBio"></p>
       <button id="readMoreButton">Read more</button>
-      <p id="nip05">User Nip-05:</p>
+      <p id="nip05"></p>
       <p id="webSiteUrl"></p>
     </div>
     <p id="publicKey">Npub:</p>
@@ -59,22 +59,20 @@
     <p id="totalPubkeys">Total Pubkeys Found:</p>
 
     <div class="tab-container">
-      <button class="tablink" onclick="openTab(event, 'Pubkeys')">
-        Pubkeys
-      </button>
-      <button class="tablink" onclick="openTab(event, 'Npubs')">Npubs</button>
+      <button class="tablink" data-tab="Pubkeys">Pubkeys</button>
+      <button class="tablink" data-tab="Npubs">Npubs</button>
     </div>
-
+    
     <div id="Pubkeys" class="tabcontent">
       <h4>Non-Active Pubkeys</h4>
       <ul id="nonActivePubkeys"></ul>
     </div>
-
-    <div id="Npubs" class="tabcontent">
+    
+    <div id="Npubs" class="tabcontent" style="display: none;">
       <h4>Non-Active Npubs</h4>
       <ul id="nonActiveNpubs"></ul>
     </div>
-
+    
     <div id="progressContainer">
       <div id="progressBar">0%</div>
     </div>
@@ -85,21 +83,5 @@
 
     <!-- Include the main JavaScript file -->
     <script type="module" src="./main.js"></script>
-    <script>
-      function openTab(evt, tabName) {
-        var i, tabcontent, tablinks;
-        tabcontent = document.getElementsByClassName("tabcontent");
-        for (i = 0; i < tabcontent.length; i++) {
-          tabcontent[i].style.display = "none";
-        }
-        tablinks = document.getElementsByClassName("tablink");
-        for (i = 0; i < tablinks.length; i++) {
-          tablinks[i].className = tablinks[i].className.replace(" active", "");
-        }
-        document.getElementById(tabName).style.display = "block";
-        evt.currentTarget.className += " active";
-      }
-      document.getElementsByClassName("tablink")[0].click(); // Open the first tab by default
-    </script>
   </body>
 </html>

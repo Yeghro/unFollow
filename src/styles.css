@@ -1,14 +1,12 @@
 body {
   font-family: Arial, sans-serif;
-  background-color: #000000;
+  background-color: #000;
   margin: 0;
   padding: 0;
 }
 
-h1,
-h2,
-h4 {
-  color: rgb(166, 124, 46);
+h1, h2, h4 {
+  color: #a67c2e;
   text-align: center;
 }
 
@@ -20,25 +18,20 @@ ul {
 
 ul li {
   padding: 10px;
-  background-color: rgb(46, 0, 46);
+  background-color: #2e002e;
   margin-bottom: 5px;
   border-radius: 4px;
-  font-family: Arial, sans-serif;
   font-size: 14px;
-  color: rgb(193, 177, 148);
+  color: #c1b194;
   text-align: center;
 }
 
-ul li:nth-child(even) {
-  background-color: rgb(46, 0, 46);
-}
-
 ul li:hover {
-  background-color: rgb(128, 83, 0);
+  background-color: #805300;
 }
 
-p {
-  color: rgb(193, 177, 148);
+p, label {
+  color: #c1b194;
   padding: 0 10px;
   text-align: center;
 }
@@ -100,12 +93,6 @@ button:hover {
   text-align: center;
 }
 
-.input-container label {
-  color: rgb(193, 177, 148);
-  font-size: 16px;
-  margin-right: 10px;
-}
-
 .input-container input {
   padding: 8px;
   font-size: 16px;
@@ -117,26 +104,30 @@ button:hover {
   text-align: center;
 }
 
-/* New styles for the tab buttons */
+/* Styles for the tab buttons */
 .tab-container {
   display: flex;
   justify-content: center;
   margin-bottom: 10px;
 }
+
 .tablink {
-  width: 150px; /* Set a fixed width for the buttons */
+  width: 150px;
   padding: 10px;
   text-align: center;
   cursor: pointer;
-  background-color: #f1f1f1;
+  background-color: #1a1a1a;
+  color: #c1b194;
   border: none;
-  outline: none;
+  border-radius: 5px;
+  margin: 0 5px;
   transition: background-color 0.3s ease;
-  margin: 0 5px; /* Add some space between the buttons */
 }
+
 .tablink:hover {
   background-color: #ddd;
 }
+
 .tablink.active {
   background-color: #ccc;
 }
@@ -144,8 +135,8 @@ button:hover {
 /* Styles for the user profile card */
 .profile-card {
   display: none;
-  background-color: rgb(46, 0, 46);
-  color: rgb(193, 177, 148);
+  background-color: #2e002e;
+  color: #c1b194;
   padding: 20px;
   margin: 20px auto;
   border-radius: 8px;
@@ -182,7 +173,7 @@ button:hover {
 }
 
 .profile-card a {
-  color: rgb(166, 124, 46);
+  color: #a67c2e;
   text-decoration: none;
 }
 
