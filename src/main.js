@@ -7,7 +7,7 @@ import {
 import {
   processKind3EventWithProgress,
   processManualPubkey,
-} from "./pubkeyProcessor.js";
+} from "./kind3processing.js";
 
 // Function to update and display user profile card
 function updateUserProfileCard(profile) {
@@ -15,10 +15,32 @@ function updateUserProfileCard(profile) {
   const userName = document.getElementById("userName");
   const userBio = document.getElementById("userBio");
   const userPicture = document.getElementById("userPicture");
+  const readMoreButton = document.getElementById("readMoreButton");
+  const nip5 = document.getElementById("nip05");
+  const webSiteUrl = document.getElementById("webSiteUrl");
+  const fullBio = profile.about || "No bio provided";
 
   userName.textContent = profile.name || "No name provided";
-  userBio.textContent = profile.about || "No bio provided";
   userPicture.src = profile.image || "default-profile.png";
+  webSiteUrl.innerHTML = profile.website
+    ? `Website: <a href="${profile.website}" target="_blank">${profile.website}</a>`
+    : "Website: No URL provided";
+  userBio.textContent =
+    fullBio.length > 100 ? fullBio.substring(0, 100) + "..." : fullBio;
+  nip5.textContent = profile.nip05 || "No NIP-05 identifier";
+
+  if (fullBio.length > 100) {
+    // Show "Read more" if bio is long
+    readMoreButton.style.display = "inline";
+    readMoreButton.onclick = function () {
+      userBio.textContent = fullBio;
+      userBio.classList.add("expanded");
+      readMoreButton.style.display = "none";
+    };
+  } else {
+    readMoreButton.style.display = "none";
+  }
+
   userProfileCard.style.display = "block";
 }
 

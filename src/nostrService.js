@@ -4,15 +4,14 @@ let ndkUser;
 export let ndk;
 export let nip07signer;
 export let relayUrls = [
+  "wss://purplepag.es",
   "wss://relay.nostr.band",
   "wss://relay.primal.net",
   "wss://relay.damus.io",
   "wss://nostr.wine",
   "wss://relay.snort.social",
-  "wss://nos.lol",
   "wss://eden.nostr.land",
   "wss://nostr.bitcoiner.social",
-  "wss://hist.nostr.land",
 ];
 
 export async function connectToNDK() {
@@ -25,13 +24,13 @@ export async function connectToNDK() {
         autoConnectUserRelays: false, // This can be set to false if you don't want to auto-connect user relays
       });
       await ndk.connect();
-      // console.log("NDK connected");
+      console.log("NDK connected");
     } catch (error) {
-      // console.error("Failed to connect to NDK:", error);
+      console.error("Failed to connect to NDK:", error);
       // Add logic to handle reconnection or notify the user
     }
   } else {
-    // console.log("Connected to Relays");
+    console.log("Connected to Relays");
   }
 }
 
@@ -39,18 +38,18 @@ export async function loginWithNostr() {
   try {
     await connectToNDK();
     const userPublicKey = await nip07signer.user();
-    // console.log("User public key obtained:", userPublicKey);
+    console.log("User public key obtained:", userPublicKey);
 
     // Use ndk.getUser to fetch user data with the userPublicKey
     ndkUser = await ndk.getUser({ npub: userPublicKey.npub });
-    // console.log("Fetched NDK user data:", ndkUser);
+    console.log("Fetched NDK user data:", ndkUser);
 
     // Fetch profile information to get the user's relays and other profile data
     await ndkUser.fetchProfile();
-    // console.log("User profile data after fetching:", ndkUser);
+    console.log("User profile data after fetching:", ndkUser);
     return ndkUser.profile;
   } catch (error) {
-    // console.error("Error during login:", error);
+    console.error("Error during login:", error);
     // Handle the error appropriately, such as displaying a user-friendly message
     alert(
       "Failed to login with Nostr. Please ensure that the NIP-07 signer is available and properly initialized."
@@ -73,37 +72,37 @@ export function getHexKey() {
 }
 
 export async function fetchEvents(filter, timeoutMs = 10000, relayUrl) {
-  // console.log("Fetching events with filter:", filter);
+  console.log("Fetching events with filter:", filter);
   const events = await ndk.fetchEvents(filter, {
-    relays: relayUrl ? [relayUrl] : ndk.explicitRelayUrls,
+    relays: relayUrl ? [relayUrls] : ndk.explicitRelayUrls,
     closeOnEose: true,
     timeoutMs,
   });
-  // console.log("Fetched events:", events);
+  console.log("Fetched events:", events);
   return events;
 }
 
 export async function fetchEvent(filter, timeoutMs = 10000) {
-  // console.log("Fetching single event with filter:", filter);
+  console.log("Fetching single event with filter:", filter);
   const event = await ndk.fetchEvent(filter, {
     relays: ndk.explicitRelayUrls,
     closeOnEose: true,
     timeoutMs,
   });
-  // console.log("Fetched event:", event);
+  console.log("Fetched event:", event);
   return event;
 }
 
 export async function createKind3Event(hexKey, activePubkeys) {
   // Ensure activePubkeys is not empty before creating the event
   if (!activePubkeys || activePubkeys.length === 0) {
-    // console.error("No active pubkeys provided. Aborting event creation.");
+    console.error("No active pubkeys provided. Aborting event creation.");
     return;
   }
 
   // Validate hexKey
   if (!hexKey) {
-    // console.error("Invalid hexKey. Aborting event creation.");
+    console.error("Invalid hexKey. Aborting event creation.");
     return;
   }
 
@@ -118,8 +117,8 @@ export async function createKind3Event(hexKey, activePubkeys) {
   try {
     await kind3Event.sign(nip07signer); // Use nip07signer instead of ndk.signer
     await kind3Event.publish();
-    // console.log("Kind 3 event created and published:", kind3Event);
+    console.log("Kind 3 event created and published:", kind3Event);
   } catch (error) {
-    // console.error("Failed to create or publish Kind 3 event:", error);
+    console.error("Failed to create or publish Kind 3 event:", error);
   }
 }
