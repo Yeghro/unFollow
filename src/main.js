@@ -1,20 +1,20 @@
 import {
-  loginWithNostr,
-  getPublicKey,
-  getHexKey,
-  createKind3Event,
-} from "./nostrService.js";
+  handleLogin,
+  handleManualPubkeyCheck,
+  getInactiveMonths,
+} from "./input.js";
 import {
-  processKind3EventWithProgress,
-  processManualPubkey,
-} from "./pubkeyProcessor.js";
+  updateUserProfileCard,
+  displayPubkeyInformation,
+  openTab,
+} from "./output.js";
+import { createKind3Event, getPublicKey, getHexKey } from "./nostrService.js";
+import { processKind3EventWithProgress } from "./kind3processing.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
-  document.getElementById("loadingSpinner").style.display = "block";
-
   try {
-    await loginWithNostr();
-    document.getElementById("loadingSpinner").style.display = "none";
+    const profile = await handleLogin();
+    updateUserProfileCard(profile);
 
     const publicKey = getPublicKey();
     const hexKey = getHexKey();
@@ -23,14 +23,23 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     ).textContent = `Public Key: ${publicKey}`;
     document.getElementById("hexKey").textContent = `Hex Key: ${hexKey}`;
 
-    // Retrieve the value of the inactiveMonths input field
-    const inactiveMonthsInput = document.getElementById("inactiveMonths");
-    const inactiveMonths = parseInt(inactiveMonthsInput.value);
+    const inactiveMonths = getInactiveMonths();
 
-    const { totalPubkeys, nonActivePubkeys, activePubkeys } =
-      await processKind3EventWithProgress(hexKey, inactiveMonths);
+    const {
+      totalPubkeys,
+      nonActivePubkeys,
+      nonActiveNpubs,
+      activePubkeys,
+      kind0Events,
+    } = await processKind3EventWithProgress(hexKey, inactiveMonths);
 
-    displayPubkeyInformation(totalPubkeys, nonActivePubkeys, activePubkeys);
+    displayPubkeyInformation(
+      totalPubkeys,
+      nonActivePubkeys,
+      nonActiveNpubs,
+      activePubkeys,
+      kind0Events
+    );
 
     const createButton = document.getElementById("createKind3EventButton");
     createButton.style.display = "block";
@@ -45,75 +54,39 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."
     );
   } catch (error) {
-    document.getElementById("loadingSpinner").style.display = "none";
-    if (error.message.includes("cancel")) {
-      alert("Login process was canceled.");
-    } else {
-      alert("Network issue occurred. Please try again later.");
-    }
-    console.error("Error:", error);
+    // Handle errors here if needed
   }
 });
 
 document
   .getElementById("checkManualPubkeyButton")
   .addEventListener("click", async () => {
-    const manualPubkeyInput = document.getElementById("manualPubkey");
-    const manualPubkey = manualPubkeyInput.value.trim();
-    if (manualPubkey) {
-      document.getElementById("loadingSpinner").style.display = "block";
-      try {
-        const inactiveMonthsInput = document.getElementById("inactiveMonths");
-        const inactiveMonths = parseInt(inactiveMonthsInput.value);
-        const { totalPubkeys, nonActivePubkeys, activePubkeys } =
-          await processManualPubkey(manualPubkey, inactiveMonths);
-        displayPubkeyInformation(totalPubkeys, nonActivePubkeys, activePubkeys);
-      } catch (error) {
-        document.getElementById("loadingSpinner").style.display = "none";
-        alert("An error occurred while processing the manual pubkey.");
-        console.error("Error:", error);
+    try {
+      const result = await handleManualPubkeyCheck();
+      if (result) {
+        const {
+          totalPubkeys,
+          nonActivePubkeys,
+          nonActiveNpubs,
+          activePubkeys,
+          kind0Events,
+        } = result;
+        displayPubkeyInformation(
+          totalPubkeys,
+          nonActivePubkeys,
+          nonActiveNpubs,
+          activePubkeys,
+          kind0Events
+        );
       }
-    } else {
-      alert("Please enter a valid pubkey/npub.");
+    } catch (error) {
+      // Handle errors here if needed
     }
   });
 
-function displayPubkeyInformation(
-  totalPubkeys,
-  nonActivePubkeys,
-  activePubkeys
-) {
-  document.getElementById(
-    "totalPubkeys"
-  ).textContent = `Total Pubkeys Found: ${totalPubkeys}`;
-
-  const nonActivePubkeysList = document.getElementById("nonActivePubkeys");
-  nonActivePubkeysList.innerHTML = ""; // Clear previous list
-  nonActivePubkeys.forEach((pubkey) => {
-    const listItem = document.createElement("li");
-    const link = document.createElement("a");
-    link.href = `https://primal.net/p/${pubkey}`;
-    link.target = "_blank";
-    link.textContent = pubkey;
-    link.style.color = "rgb(193, 177, 148)";
-    link.style.textDecoration = "none";
-    listItem.appendChild(link);
-    listItem.style.padding = "10px";
-    listItem.style.backgroundColor = "rgb(46, 0, 46)";
-    listItem.style.marginBottom = "5px";
-    listItem.style.borderRadius = "4px";
-    listItem.style.fontFamily = "Arial, sans-serif";
-    listItem.style.fontSize = "14px";
-    listItem.addEventListener("mouseover", function () {
-      this.style.backgroundColor = "rgb(128, 83, 0)";
-    });
-    listItem.addEventListener("mouseout", function () {
-      this.style.backgroundColor = "rgb(46, 0, 46)";
-    });
-    nonActivePubkeysList.appendChild(listItem);
-  });
-
-  const totalNonActivePubkeys = document.createElement("p");
-  totalNonActivePubkeys.textContent = `Total Non-Active Pubkeys: ${nonActivePubkeys.length}`;
-  nonActivePubkeysList.appendChild(totalNonActivePubkeys);
-}
+// Add event listeners for the tabs
+document.querySelectorAll(".tablink").forEach((tablink) => {
+  tablink.addEventListener("click", (event) =>
+    openTab(event, tablink.getAttribute("data-tab"))
+  );
+});
