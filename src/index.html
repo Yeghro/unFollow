@@ -41,14 +41,37 @@
     </div>
     <button id="checkManualPubkeyButton">Check Manual Pubkey</button>
     <div id="loadingSpinner" class="spinner"></div>
-    <p id="publicKey">Public Key:</p>
+
+    <!-- User Profile Card -->
+    <h2>Profile Information</h2>
+    <div id="userProfileCard" class="profile-card">
+      <img id="userPicture" alt="User Picture" />
+      <p id="userName"></p>
+      <p id="userBio"></p>
+      <button id="readMoreButton">Read more</button>
+      <p id="nip05"></p>
+      <p id="webSiteUrl"></p>
+    </div>
+    <p id="publicKey">Npub:</p>
     <p id="hexKey">Hex Key:</p>
 
     <h2>Pubkey Information</h2>
     <p id="totalPubkeys">Total Pubkeys Found:</p>
 
-    <h4>Non-Active Pubkeys</h4>
-    <ul id="nonActivePubkeys"></ul>
+    <div class="tab-container">
+      <button class="tablink" data-tab="Pubkeys">Pubkeys</button>
+      <button class="tablink" data-tab="Npubs">Npubs</button>
+    </div>
+
+    <div id="Pubkeys" class="tabcontent">
+      <h4>Non-Active Pubkeys</h4>
+      <ul id="nonActivePubkeys"></ul>
+    </div>
+
+    <div id="Npubs" class="tabcontent" style="display: none">
+      <h4>Non-Active Npubs</h4>
+      <ul id="nonActiveNpubs"></ul>
+    </div>
 
     <div id="progressContainer">
       <div id="progressBar">0%</div>

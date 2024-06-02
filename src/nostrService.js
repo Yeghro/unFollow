@@ -1,16 +1,15 @@
-import NDK, { NDKNip07Signer, NDKUser, NDKEvent } from "@nostr-dev-kit/ndk";
+import NDK, { NDKNip07Signer, NDKEvent } from "@nostr-dev-kit/ndk";
 
-export let ndk;
 let ndkUser;
+export let ndk;
 export let nip07signer;
-
 export let relayUrls = [
+  "wss://purplepag.es",
   "wss://relay.nostr.band",
   "wss://relay.primal.net",
   "wss://relay.damus.io",
   "wss://nostr.wine",
   "wss://relay.snort.social",
-  "wss://nos.lol",
   "wss://eden.nostr.land",
   "wss://nostr.bitcoiner.social",
 ];
@@ -22,7 +21,7 @@ export async function connectToNDK() {
       ndk = new NDK({
         signer: nip07signer,
         explicitRelayUrls: relayUrls,
-        autoConnectUserRelays: false,
+        autoConnectUserRelays: false, // This can be set to false if you don't want to auto-connect user relays
       });
       await ndk.connect();
       console.log("NDK connected");
@@ -31,18 +30,28 @@ export async function connectToNDK() {
       // Add logic to handle reconnection or notify the user
     }
   } else {
-    console.log("NDK already connected");
+    console.log("Connected to Relays");
   }
 }
 
 export async function loginWithNostr() {
   try {
     await connectToNDK();
-    const user = await nip07signer.user();
-    console.log("User public key obtained:", user);
-    ndkUser = new NDKUser({ npub: user.npub });
-    ndkUser.ndk = ndk;
-    console.log("NDK user initialized:", ndkUser);
+    const userPublicKey = await nip07signer.user();
+    console.log("User public key obtained:", userPublicKey);
+
+    // Use ndk.getUser to fetch user data with the userPublicKey
+    ndkUser = await ndk.getUser({ npub: userPublicKey.npub });
+    console.log("Fetched NDK user data:", ndkUser);
+
+    ndk.activeUser = ndkUser;
+    console.log("Active user set in NDK:", ndk.activeUser);
+
+    // Fetch profile information to get the user's relays and other profile data
+    await ndkUser.fetchProfile();
+    console.log("User profile data after fetching:", ndkUser);
+
+    return ndkUser.profile;
   } catch (error) {
     console.error("Error during login:", error);
     // Handle the error appropriately, such as displaying a user-friendly message
@@ -66,12 +75,11 @@ export function getHexKey() {
   return ndkUser.pubkey;
 }
 
-export async function fetchEvents(filter, timeoutMs = 10000, relayUrl) {
+export async function fetchEvents(filter, relayUrl) {
   console.log("Fetching events with filter:", filter);
   const events = await ndk.fetchEvents(filter, {
     relays: relayUrl ? [relayUrl] : ndk.explicitRelayUrls,
     closeOnEose: true,
-    timeoutMs,
   });
   console.log("Fetched events:", events);
   return events;
@@ -116,4 +124,57 @@ export async function createKind3Event(hexKey, activePubkeys) {
   } catch (error) {
     console.error("Failed to create or publish Kind 3 event:", error);
   }
+}
+
+// New function to subscribe to relays and fetch events
+export async function subscribeToRelays(filter, callback, timeoutMs = 60000) {
+  console.log("Subscribing to relays with filter:", filter);
+
+  const subscription = ndk.subscribe(filter, { closeOnEose: true });
+  const eventsMap = new Map();
+
+  return new Promise((resolve, reject) => {
+    subscription.on("event", (event) => {
+      console.log(`Event received: pubkey=${event.pubkey}, kind=${event.kind}`);
+
+      const isAuthorIncluded = filter.authors.includes(event.pubkey);
+      const isAlreadyProcessed = eventsMap.has(event.pubkey);
+
+      console.log(`Is author included: ${isAuthorIncluded}`);
+      console.log(`Is already processed: ${isAlreadyProcessed}`);
+
+      if (isAuthorIncluded && !isAlreadyProcessed) {
+        eventsMap.set(event.pubkey, event);
+        callback(event);
+
+        console.log(
+          `Event processed and added to eventsMap: pubkey=${event.pubkey}`
+        );
+        console.log(`Current eventsMap size: ${eventsMap.size}`);
+        console.log(`Current eventsMap keys: ${Array.from(eventsMap.keys())}`);
+
+        // Check if all pubkeys have been processed
+        if (eventsMap.size === filter.authors.length) {
+          console.log("All pubkeys processed.");
+          subscription.stop(); // Stop the subscription after processing all pubkeys
+          resolve(Array.from(eventsMap.values()));
+        }
+      } else {
+        console.log(`Event not processed for pubkey: ${event.pubkey}`);
+      }
+    });
+
+    subscription.on("eose", () => {
+      console.log("End of stream event received.");
+      subscription.stop(); // Stop the subscription after receiving EOSE
+      resolve(Array.from(eventsMap.values()));
+    });
+
+    subscription.on("error", (error) => {
+      console.error(`Subscription error: ${error}`);
+      reject(error); // Reject the promise on error
+    });
+
+    subscription.start(); // Ensure the subscription starts
+  });
 }
