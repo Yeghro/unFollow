@@ -8,20 +8,19 @@ import {
   displayPubkeyInformation,
   openTab,
 } from "./output.js";
-import { createKind3Event, getPublicKey, getHexKey } from "./nostrService.js";
+import { createKind3Event, ndkUser } from "./nostrService.js";
 import { processKind3EventWithProgress } from "./kind3processing.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
   try {
     const profile = await handleLogin();
     updateUserProfileCard(profile);
-
-    const publicKey = getPublicKey();
-    const hexKey = getHexKey();
     document.getElementById(
       "publicKey"
-    ).textContent = `Public Key: ${publicKey}`;
-    document.getElementById("hexKey").textContent = `Hex Key: ${hexKey}`;
+    ).textContent = `Public Key: ${ndkUser.npub}`;
+    document.getElementById(
+      "hexKey"
+    ).textContent = `Hex Key: ${ndkUser.pubkey}`;
 
     const inactiveMonths = getInactiveMonths();
 
@@ -31,7 +30,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       nonActiveNpubs,
       activePubkeys,
       kind0Events,
-    } = await processKind3EventWithProgress(hexKey, inactiveMonths);
+    } = await processKind3EventWithProgress(inactiveMonths);
 
     displayPubkeyInformation(
       totalPubkeys,
@@ -45,7 +44,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     createButton.style.display = "block";
     createButton.addEventListener("click", async () => {
       if (confirm("Are you sure you want to create a new kind 3 event?")) {
-        await createKind3Event(hexKey, activePubkeys);
+        await createKind3Event(activePubkeys);
         alert("New kind 3 event created successfully.");
       }
     });
@@ -54,7 +53,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."
     );
   } catch (error) {
-    // Handle errors here if needed
+    console.error("Error during login and processing:", error);
   }
 });
 

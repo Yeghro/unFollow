@@ -43,5 +43,12 @@ export async function handleManualPubkeyCheck() {
 
 export function getInactiveMonths() {
   const inactiveMonthsInput = document.getElementById("inactiveMonths");
-  return parseInt(inactiveMonthsInput.value);
+  if (inactiveMonthsInput && inactiveMonthsInput.value) {
+    const inactiveMonths = parseInt(inactiveMonthsInput.value, 10);
+    if (!isNaN(inactiveMonths) && inactiveMonths > 0) {
+      return inactiveMonths;
+    }
+  }
+  console.error("Invalid or missing inactive months input.");
+  return NaN;
 }

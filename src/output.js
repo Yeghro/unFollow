@@ -141,3 +141,17 @@ export function displayPubkeyInformation(
   totalNonActiveNpubs.textContent = `Total Non-Active Npubs: ${nonActiveNpubs.length}`;
   nonActiveNpubsList.appendChild(totalNonActiveNpubs);
 }
+export function displayTotalPubkeys(total) {
+  const totalPubkeysElement = document.getElementById("totalPubkeys");
+  if (totalPubkeysElement) {
+    totalPubkeysElement.textContent = `Total Pubkeys Found: ${total}`;
+  }
+}
+
+export function updateProgressBar(progress) {
+  const progressBar = document.getElementById("progressBar");
+  if (progressBar) {
+    progressBar.style.width = `${progress}%`;
+    progressBar.textContent = `${progress}%`;
+  }
+}

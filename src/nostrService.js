@@ -1,6 +1,6 @@
-import NDK, { NDKNip07Signer, NDKEvent } from "@nostr-dev-kit/ndk";
+import NDK, { NDKNip07Signer, NDKEvent, NDKUser } from "@nostr-dev-kit/ndk";
 
-let ndkUser;
+export let ndkUser;
 export let ndk;
 export let nip07signer;
 export let relayUrls = [
@@ -61,51 +61,10 @@ export async function loginWithNostr() {
   }
 }
 
-export function getPublicKey() {
-  if (!ndkUser) {
-    throw new Error("NDK user not initialized. Please login first.");
-  }
-  return ndkUser.npub;
-}
-
-export function getHexKey() {
-  if (!ndkUser) {
-    throw new Error("NDK user not initialized. Please login first.");
-  }
-  return ndkUser.pubkey;
-}
-
-export async function fetchEvents(filter, relayUrl) {
-  console.log("Fetching events with filter:", filter);
-  const events = await ndk.fetchEvents(filter, {
-    relays: relayUrl ? [relayUrl] : ndk.explicitRelayUrls,
-    closeOnEose: true,
-  });
-  console.log("Fetched events:", events);
-  return events;
-}
-
-export async function fetchEvent(filter, timeoutMs = 10000) {
-  console.log("Fetching single event with filter:", filter);
-  const event = await ndk.fetchEvent(filter, {
-    relays: ndk.explicitRelayUrls,
-    closeOnEose: true,
-    timeoutMs,
-  });
-  console.log("Fetched event:", event);
-  return event;
-}
-
-export async function createKind3Event(hexKey, activePubkeys) {
+export async function createKind3Event(activePubkeys) {
   // Ensure activePubkeys is not empty before creating the event
   if (!activePubkeys || activePubkeys.length === 0) {
     console.error("No active pubkeys provided. Aborting event creation.");
-    return;
-  }
-
-  // Validate hexKey
-  if (!hexKey) {
-    console.error("Invalid hexKey. Aborting event creation.");
     return;
   }
 
@@ -114,7 +73,7 @@ export async function createKind3Event(hexKey, activePubkeys) {
     tags: activePubkeys.map((pubkey) => ["p", pubkey]),
     content: "",
     created_at: Math.floor(Date.now() / 1000),
-    pubkey: hexKey, // Ensure the hexKey is used as the author's pubkey
+    pubkey: ndkUser.pubkey,
   });
 
   try {
@@ -124,57 +83,4 @@ export async function createKind3Event(hexKey, activePubkeys) {
   } catch (error) {
     console.error("Failed to create or publish Kind 3 event:", error);
   }
-}
-
-// New function to subscribe to relays and fetch events
-export async function subscribeToRelays(filter, callback, timeoutMs = 60000) {
-  console.log("Subscribing to relays with filter:", filter);
-
-  const subscription = ndk.subscribe(filter, { closeOnEose: true });
-  const eventsMap = new Map();
-
-  return new Promise((resolve, reject) => {
-    subscription.on("event", (event) => {
-      console.log(`Event received: pubkey=${event.pubkey}, kind=${event.kind}`);
-
-      const isAuthorIncluded = filter.authors.includes(event.pubkey);
-      const isAlreadyProcessed = eventsMap.has(event.pubkey);
-
-      console.log(`Is author included: ${isAuthorIncluded}`);
-      console.log(`Is already processed: ${isAlreadyProcessed}`);
-
-      if (isAuthorIncluded && !isAlreadyProcessed) {
-        eventsMap.set(event.pubkey, event);
-        callback(event);
-
-        console.log(
-          `Event processed and added to eventsMap: pubkey=${event.pubkey}`
-        );
-        console.log(`Current eventsMap size: ${eventsMap.size}`);
-        console.log(`Current eventsMap keys: ${Array.from(eventsMap.keys())}`);
-
-        // Check if all pubkeys have been processed
-        if (eventsMap.size === filter.authors.length) {
-          console.log("All pubkeys processed.");
-          subscription.stop(); // Stop the subscription after processing all pubkeys
-          resolve(Array.from(eventsMap.values()));
-        }
-      } else {
-        console.log(`Event not processed for pubkey: ${event.pubkey}`);
-      }
-    });
-
-    subscription.on("eose", () => {
-      console.log("End of stream event received.");
-      subscription.stop(); // Stop the subscription after receiving EOSE
-      resolve(Array.from(eventsMap.values()));
-    });
-
-    subscription.on("error", (error) => {
-      console.error(`Subscription error: ${error}`);
-      reject(error); // Reject the promise on error
-    });
-
-    subscription.start(); // Ensure the subscription starts
-  });
 }
