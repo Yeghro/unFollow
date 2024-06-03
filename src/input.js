@@ -47,8 +47,13 @@ export function getInactiveMonths() {
     const inactiveMonths = parseInt(inactiveMonthsInput.value, 10);
     if (!isNaN(inactiveMonths) && inactiveMonths > 0) {
       return inactiveMonths;
+    } else {
+      console.error(
+        "Invalid inactive months value. It must be a positive integer."
+      );
     }
+  } else {
+    console.error("Inactive months input is missing.");
   }
-  console.error("Invalid or missing inactive months input.");
   return NaN;
 }

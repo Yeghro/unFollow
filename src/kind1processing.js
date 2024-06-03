@@ -15,63 +15,98 @@ export function extractPubkeysFromKind3Event(events) {
 
   return pubkeys;
 }
-export let batchSize = 100;
+export let batchSize;
 // Fetch latest kind 1 events
 export async function fetchLatestKind1EventsWithRelays(
   pubkeys,
   updateProgress,
-  batchSize
+  batchSize = 20
 ) {
-  let eventsMap = new Map();
-  let totalFetched = 0;
-  let totalPubkeys = pubkeys.length;
+  const eventsMap = new Map();
+  const total = pubkeys.length;
+  let completed = 0;
+  let totalEventsReceived = 0;
+  let uniquePubkeysWithEvents = new Set();
 
-  // Helper function to fetch events for a batch of pubkeys
-  const fetchBatch = async (batch) => {
+  // Helper function to fetch the latest event for a single pubkey
+  const fetchSinglePubkey = async (pubkey) => {
     const filter = {
-      authors: batch,
-      kinds: [1],
+      authors: [pubkey],
+      kinds: [1, 0],
     };
-    console.log(`Fetching events for pubkeys: ${batch.join(", ")}`);
-
+    console.log("pubkey being fetched:", pubkey);
     try {
       const events = await ndk.fetchEvents(filter, { closeOnEose: true });
+      totalEventsReceived += events.size;
+
+      if (events.size === 0) {
+        console.log(`No events found for pubkey: ${pubkey}`);
+      }
 
       events.forEach((event) => {
-        if (event.kind === 1) {
-          // Ensure we capture the latest event per pubkey
-          if (
-            !eventsMap.has(event.pubkey) ||
-            event.created_at > eventsMap.get(event.pubkey).created_at
-          ) {
-            eventsMap.set(event.pubkey, event);
-            console.log(
-              `Kind 1 event received for pubkey: ${event.pubkey}, created at: ${event.created_at}`
-            );
-          }
-        } else {
-          console.log(`Non-kind 1 event received for pubkey: ${event.pubkey}`);
+        uniquePubkeysWithEvents.add(event.pubkey);
+        // Add the event to the map, keyed by its pubkey, ensuring no duplicates
+        if (
+          !eventsMap.has(event.pubkey) ||
+          event.created_at > eventsMap.get(event.pubkey).created_at
+        ) {
+          eventsMap.set(event.pubkey, event);
+          console.log(
+            `Kind 1 event received for pubkey: ${event.pubkey}, created at: ${event.created_at}`
+          );
         }
       });
-      console.log("eventsMap:", eventsMap);
-      totalFetched += batch.length;
-      const progress = (totalFetched / totalPubkeys) * 100;
-      updateProgress(progress); // Update progress correctly
+
+      completed += 1;
+      const progress = (completed / total) * 100;
+      updateProgress(progress);
       console.log(`Progress: ${progress}%`);
+      console.log(`Total events received: ${totalEventsReceived}`);
     } catch (error) {
-      console.error(
-        `Error fetching events for batch: ${batch.join(", ")}`,
-        error
-      );
+      console.error(`Error fetching events for pubkey: ${pubkey}`, error);
     }
   };
 
-  // Split pubkeys into batches and fetch each batch sequentially
+  // Split pubkeys into batches and fetch events in parallel for each batch
+  const fetchBatch = async (batch) => {
+    const fetchPromises = batch.map((pubkey) => fetchSinglePubkey(pubkey));
+    await Promise.all(fetchPromises);
+  };
+
+  // Split pubkeys into batches and execute fetchBatch in sequence
   for (let i = 0; i < pubkeys.length; i += batchSize) {
     const batch = pubkeys.slice(i, i + batchSize);
     await fetchBatch(batch);
   }
 
+  // Verification step: Ensure all unique pubkeys' events are correctly processed
+  uniquePubkeysWithEvents.forEach((pubkey) => {
+    if (!eventsMap.has(pubkey)) {
+      console.log(`No event found for pubkey: ${pubkey}`);
+    } else {
+      console.log(`Event found for pubkey: ${pubkey}`);
+    }
+  });
+
+  // Log the summary of all received events to ensure all are processed
+  const summary = {
+    totalEventsReceived,
+    totalUniquePubkeys: uniquePubkeysWithEvents.size,
+    totalEventsProcessed: eventsMap.size,
+    uniquePubkeysWithoutEvents: pubkeys.filter(
+      (pubkey) => !uniquePubkeysWithEvents.has(pubkey)
+    ),
+    pubkeysWithMissingEvents: Array.from(uniquePubkeysWithEvents).filter(
+      (pubkey) => !eventsMap.has(pubkey)
+    ),
+  };
+
+  console.log("All received events:", Array.from(eventsMap.values()));
+  console.log("Summary:", summary);
+
+  console.log(
+    `Total unique pubkeys with events: ${uniquePubkeysWithEvents.size}`
+  );
   console.log("Batch fetching completed.");
   console.log(`Total events processed: ${eventsMap.size}`);
   updateProgress(100); // Ensure progress bar reaches 100%

@@ -36,8 +36,7 @@ export async function processKind3EventWithProgress(inactiveMonths) {
     // Fetch latest kind 1 events for all pubkeys in batches
     let latestEvents = await fetchLatestKind1EventsWithRelays(
       pubkeys,
-      updateProgress,
-      batchSize
+      updateProgress
     );
     console.log("Events per pubkey:", latestEvents);
 
