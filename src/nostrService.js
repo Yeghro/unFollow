@@ -5,13 +5,11 @@ export let ndk;
 export let nip07signer;
 export let relayUrls = [
   "wss://purplepag.es",
-  "wss://relay.nostr.band",
+  "wss://nostr.wine",
   "wss://relay.primal.net",
   "wss://relay.damus.io",
-  "wss://nostr.wine",
-  "wss://relay.snort.social",
+  "wss://relay.nostr.band",
   "wss://eden.nostr.land",
-  "wss://nostr.bitcoiner.social",
 ];
 
 export async function connectToNDK() {

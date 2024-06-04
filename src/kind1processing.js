@@ -20,7 +20,7 @@ export let batchSize;
 export async function fetchLatestKind1EventsWithRelays(
   pubkeys,
   updateProgress,
-  batchSize = 20
+  batchSize = 64
 ) {
   const eventsMap = new Map();
   const total = pubkeys.length;
