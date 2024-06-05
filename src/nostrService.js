@@ -1,6 +1,7 @@
 import NDK, { NDKNip07Signer, NDKEvent } from "@nostr-dev-kit/ndk";
+import InMemoryCacheAdapter from "./InMemoryCacheAdapter";
 
-let ndkUser;
+export let ndkUser;
 export let ndk;
 export let nip07signer;
 export let relayUrls = [
@@ -12,8 +13,10 @@ export let relayUrls = [
   "wss://relay.snort.social",
   "wss://eden.nostr.land",
   "wss://nostr.bitcoiner.social",
-  "wss://nostrpub.yeghro.site",
 ];
+
+// Initialize the cache adapter
+const cacheAdapter = new InMemoryCacheAdapter();
 
 export async function connectToNDK() {
   if (!ndk || !ndk.isConnected()) {
@@ -22,7 +25,8 @@ export async function connectToNDK() {
       ndk = new NDK({
         signer: nip07signer,
         explicitRelayUrls: relayUrls,
-        autoConnectUserRelays: false, // This can be set to false if you don't want to auto-connect user relays
+        autoConnectUserRelays: false,
+        cache: cacheAdapter, // Use the cache adapter
       });
       await ndk.connect();
       console.log("NDK connected");
@@ -40,18 +44,15 @@ export async function loginWithNostr() {
     await connectToNDK();
     const userPublicKey = await nip07signer.user();
     console.log("User public key obtained:", userPublicKey);
+    console.log("NDKPool info:", ndk.pool);
 
     // Use ndk.getUser to fetch user data with the userPublicKey
     ndkUser = await ndk.getUser({ npub: userPublicKey.npub });
     console.log("Fetched NDK user data:", ndkUser);
 
-    ndk.activeUser = ndkUser;
-    console.log("Active user set in NDK:", ndk.activeUser);
-
     // Fetch profile information to get the user's relays and other profile data
     await ndkUser.fetchProfile();
     console.log("User profile data after fetching:", ndkUser);
-
     return ndkUser.profile;
   } catch (error) {
     console.error("Error during login:", error);
@@ -62,50 +63,7 @@ export async function loginWithNostr() {
   }
 }
 
-export function getPublicKey() {
-  if (!ndkUser) {
-    throw new Error("NDK user not initialized. Please login first.");
-  }
-  return ndkUser.npub;
-}
-
-export function getHexKey() {
-  if (!ndkUser) {
-    throw new Error("NDK user not initialized. Please login first.");
-  }
-  return ndkUser.pubkey;
-}
-
-export async function fetchEvents(filter) {
-  console.log("Fetching events with filter:", filter);
-
-  const opts = {
-    closeOnEose: true, // Close connection after End of Stream event
-    // cacheUsage: NDKSubscriptionCacheUsage.PARALLEL, // Use both cache and relay
-  };
-
-  try {
-    const events = await ndk.fetchEvents(filter, opts);
-    console.log("Fetched events:", events);
-    return events;
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    return new Set(); // Return an empty set on error
-  }
-}
-
-export async function fetchEvent(filter, timeoutMs = 10000) {
-  console.log("Fetching single event with filter:", filter);
-  const event = await ndk.fetchEvent(filter, {
-    relays: ndk.explicitRelayUrls,
-    closeOnEose: true,
-    timeoutMs,
-  });
-  console.log("Fetched event:", event);
-  return event;
-}
-
-export async function createKind3Event(hexKey, activePubkeys) {
+export async function createKind3Event(activePubkeys) {
   // Ensure activePubkeys is not empty before creating the event
   if (!activePubkeys || activePubkeys.length === 0) {
     console.error("No active pubkeys provided. Aborting event creation.");
@@ -123,7 +81,7 @@ export async function createKind3Event(hexKey, activePubkeys) {
     tags: activePubkeys.map((pubkey) => ["p", pubkey]),
     content: "",
     created_at: Math.floor(Date.now() / 1000),
-    pubkey: hexKey, // Ensure the hexKey is used as the author's pubkey
+    pubkey: ndkUser.pubkey, // Ensure the hexKey is used as the author's pubkey
   });
 
   try {

@@ -1,24 +1,25 @@
-body {
+
+.unfollow-container {
   font-family: Arial, sans-serif;
   background-color: #000;
   margin: 0;
   padding: 0;
 }
 
-h1,
-h2,
-h4 {
+.unfollow-container h1, 
+.unfollow-container h2, 
+.unfollow-container h4 {
   color: #a67c2e;
   text-align: center;
 }
 
-ul {
+.unfollow-container ul {
   list-style-type: none;
   padding: 0;
   margin: 0;
 }
 
-ul li {
+.unfollow-container ul li {
   padding: 10px;
   background-color: #2e002e;
   margin-bottom: 5px;
@@ -28,18 +29,18 @@ ul li {
   text-align: center;
 }
 
-ul li:hover {
+.unfollow-container ul li:hover {
   background-color: #805300;
 }
 
-p,
-label {
+.unfollow-container p, 
+.unfollow-container label {
   color: #c1b194;
   padding: 0 10px;
   text-align: center;
 }
 
-button {
+.unfollow-container button {
   background: linear-gradient(to right, orange, purple);
   color: white;
   padding: 10px 20px;
@@ -52,18 +53,18 @@ button {
   transition: background 0.3s ease;
 }
 
-button:hover {
+.unfollow-container button:hover {
   background: linear-gradient(to right, purple, orange);
 }
 
-#progressContainer {
+.unfollow-container #progressContainer {
   width: 80%;
   background-color: #1a1a1a;
   margin: 20px auto;
   border-radius: 5px;
 }
 
-#progressBar {
+.unfollow-container #progressBar {
   width: 0%;
   height: 30px;
   background: linear-gradient(to right, orange, purple);
@@ -74,7 +75,7 @@ button:hover {
   transition: width 0.3s ease;
 }
 
-.spinner {
+.unfollow-container .spinner {
   border: 4px solid rgba(0, 0, 0, 0.1);
   border-left-color: #000;
   border-radius: 50%;
@@ -91,12 +92,12 @@ button:hover {
   }
 }
 
-.input-container {
+.unfollow-container .input-container {
   margin: 20px auto;
   text-align: center;
 }
 
-.input-container input {
+.unfollow-container .input-container input {
   padding: 8px;
   font-size: 16px;
   border-radius: 4px;
@@ -108,13 +109,13 @@ button:hover {
 }
 
 /* Styles for the tab buttons */
-.tab-container {
+.unfollow-container .tab-container {
   display: flex;
   justify-content: center;
   margin-bottom: 10px;
 }
 
-.tablink {
+.unfollow-container .tablink {
   width: 150px;
   padding: 10px;
   text-align: center;
@@ -127,16 +128,16 @@ button:hover {
   transition: background-color 0.3s ease;
 }
 
-.tablink:hover {
+.unfollow-container .tablink:hover {
   background-color: #ddd;
 }
 
-.tablink.active {
+.unfollow-container .tablink.active {
   background-color: #ccc;
 }
 
 /* Styles for the user profile card */
-.profile-card {
+.unfollow-container .profile-card {
   display: none;
   background-color: #2e002e;
   color: #c1b194;
@@ -147,26 +148,26 @@ button:hover {
   width: 300px;
 }
 
-.profile-card img {
+.unfollow-container .profile-card img {
   width: 100px;
   height: 100px;
   border-radius: 50%;
   margin-bottom: 10px;
 }
 
-.profile-card #userBio {
+.unfollow-container .profile-card #userBio {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   max-width: 250px;
 }
 
-.profile-card #userBio.expanded {
+.unfollow-container .profile-card #userBio.expanded {
   white-space: normal;
   overflow: visible;
 }
 
-.profile-card button {
+.unfollow-container .profile-card button {
   background: linear-gradient(to right, orange, purple);
   color: white;
   padding: 5px 10px;
@@ -175,11 +176,11 @@ button:hover {
   cursor: pointer;
 }
 
-.profile-card a {
+.unfollow-container .profile-card a {
   color: #a67c2e;
   text-decoration: none;
 }
 
-.profile-card a:hover {
+.unfollow-container .profile-card a:hover {
   text-decoration: underline;
 }

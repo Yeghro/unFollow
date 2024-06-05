@@ -1,4 +1,4 @@
-import { fetchEvents, connectToNDK } from "./nostrService.js";
+import { connectToNDK, ndkUser, ndk } from "./nostrService.js";
 import { NDKUser } from "@nostr-dev-kit/ndk";
 import {
   extractPubkeysFromKind3Event,
@@ -6,82 +6,95 @@ import {
   getNonActivePubkeys,
 } from "./kind1processing.js";
 
-export async function processKind3EventWithProgress(hexKey, inactiveMonths) {
-  const filter = { kinds: [3], authors: [hexKey] };
+export async function processKind3EventWithProgress(inactiveMonths) {
+  const filter = { kinds: [3], authors: [ndkUser.pubkey] };
   console.log("Filter for kind 3 events:", filter);
 
-  const events = await fetchEvents(filter);
-  console.log("Fetched kind 3 events:", events);
+  try {
+    const events = await ndk.fetchEvents(filter);
+    console.log("Fetched kind 3 events:", events);
 
-  if (events && (events.size > 0 || events.length > 0)) {
-    console.log("Number of kind 3 events found:", events.size || events.length);
-    const pubkeys = extractPubkeysFromKind3Event(events);
-    console.log("Pubkeys extracted:", pubkeys);
+    if (events && events.size > 0) {
+      console.log("Number of kind 3 events found:", events.size);
+      const pubkeys = extractPubkeysFromKind3Event(events);
+      console.log("Pubkeys extracted:", pubkeys);
 
-    // Display the total number of pubkeys found immediately
-    const totalPubkeysElement = document.getElementById("totalPubkeys");
-    if (totalPubkeysElement) {
-      totalPubkeysElement.textContent = `Total Pubkeys Found: ${pubkeys.length}`;
-    }
-
-    const progressBar = document.getElementById("progressBar");
-    if (progressBar) {
-      progressBar.style.width = "0%";
-      progressBar.textContent = "0%";
-    }
-
-    const total = pubkeys.length;
-    let completed = 0;
-
-    const updateProgress = (progress) => {
-      console.log(`Updating progress bar to ${progress}%`);
-      if (progressBar) {
-        progressBar.style.width = `${progress}%`;
-        progressBar.textContent = `${progress}%`;
+      // Display the total number of pubkeys found immediately
+      const totalPubkeysElement = document.getElementById("totalPubkeys");
+      if (totalPubkeysElement) {
+        totalPubkeysElement.textContent = `Total Pubkeys Found: ${pubkeys.length}`;
       }
-    };
 
-    const latestEvents = await fetchLatestKind1EventsWithRelays(
-      pubkeys,
-      updateProgress
-    );
-    console.log("Events per pubkey:", latestEvents);
+      const progressBar = document.getElementById("progressBar");
+      if (progressBar) {
+        progressBar.style.width = "0%";
+        progressBar.textContent = "0%";
+      }
 
-    const nonActivePubkeys = getNonActivePubkeys(latestEvents, inactiveMonths);
-    console.log("Non-active pubkeys:", nonActivePubkeys);
+      const total = pubkeys.length;
+      let completed = 0;
+      const updateProgress = () => {
+        completed++;
+        const percent = Math.round((completed / total) * 100);
+        if (progressBar) {
+          progressBar.style.width = `${percent}%`;
+          progressBar.textContent = `${percent}%`;
+        }
+      };
 
-    // Separate active and non-active pubkeys
-    const activePubkeys = pubkeys.filter(
-      (pubkey) => !nonActivePubkeys.includes(pubkey)
-    );
+      const latestEvents = await fetchLatestKind1EventsWithRelays(
+        pubkeys,
+        updateProgress
+      );
+      console.log("Latest Events returned to kind3Processing:", latestEvents);
 
-    // Convert non-active pubkeys to npubs
-    const nonActiveNpubs = nonActivePubkeys.map((pubkey) => {
-      const ndkUser = new NDKUser({ pubkey });
-      return ndkUser.npub;
-    });
+      const nonActivePubkeys = getNonActivePubkeys(
+        latestEvents,
+        inactiveMonths
+      );
 
-    // Extract kind 0 events for display
-    const kind0Events = latestEvents
-      .filter((event) => event && event.event && event.event.kind === 0)
-      .map((event) => ({
-        pubkey: event.pubkey,
-        content: JSON.parse(event.event.content),
-      }));
+      // Separate active and non-active pubkeys
+      const activePubkeys = pubkeys.filter(
+        (pubkey) => !nonActivePubkeys.includes(pubkey)
+      );
 
-    return {
-      totalPubkeys: pubkeys.length,
-      nonActivePubkeys: nonActivePubkeys,
-      nonActiveNpubs: nonActiveNpubs,
-      activePubkeys: activePubkeys,
-      kind0Events: kind0Events, // Added kind 0 events for further use
-    };
-  } else {
-    console.log("No kind 3 events found.");
-    const totalPubkeysElement = document.getElementById("totalPubkeys");
-    if (totalPubkeysElement) {
-      totalPubkeysElement.textContent = `Total Pubkeys Found: 0`;
+      // Convert non-active pubkeys to npubs
+      const nonActiveNpubs = nonActivePubkeys.map((pubkey) => {
+        const ndkUser = new NDKUser({ pubkey });
+        return ndkUser.npub;
+      });
+
+      // Extract kind 0 events for display
+      const kind0Events = latestEvents
+        .filter((event) => event.kind === 0)
+        .map((event) => ({
+          pubkey: event.pubkey,
+          content: JSON.parse(event.content),
+        }));
+
+      return {
+        totalPubkeys: pubkeys.length,
+        nonActivePubkeys: nonActivePubkeys,
+        nonActiveNpubs: nonActiveNpubs,
+        activePubkeys: activePubkeys,
+        kind0Events: kind0Events, // Added kind 0 events for further use
+      };
+    } else {
+      console.log("No kind 3 events found.");
+      const totalPubkeysElement = document.getElementById("totalPubkeys");
+      if (totalPubkeysElement) {
+        totalPubkeysElement.textContent = `Total Pubkeys Found: 0`;
+      }
+      return {
+        totalPubkeys: 0,
+        nonActivePubkeys: [],
+        nonActiveNpubs: [],
+        activePubkeys: [],
+        kind0Events: [], // Added empty kind 0 events array for consistency
+      };
     }
+  } catch (error) {
+    console.error("Failed to fetch kind 3 events:", error);
     return {
       totalPubkeys: 0,
       nonActivePubkeys: [],
