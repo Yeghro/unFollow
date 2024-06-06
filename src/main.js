@@ -1,42 +1,53 @@
-import {
-  handleLogin,
-  handleManualPubkeyCheck,
-  getInactiveMonths,
-} from "./input.js";
-import {
-  updateUserProfileCard,
-  displayPubkeyInformation,
-  openTab,
-} from "./output.js";
-import { createKind3Event, ndkUser } from "./nostrService.js";
-import { processKind3EventWithProgress } from "./kind3processing.js";
+import { connectToRelays } from "./nostrService.js";
+import { updateUserProfileCard, displayPubkeyInformation } from "./display.js";
+import { fetchKind0Events, fetchKind3Events } from "./fetching.js";
+import { nip19 } from "nostr-tools";
+import { getInactiveMonths } from "./input.js";
+import { categorizePubkeys } from "./eventProcessing.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
   try {
-    const profile = await handleLogin();
-    updateUserProfileCard(profile);
+    // Connect to relays only when login button is clicked
+    connectToRelays();
 
-    document.getElementById("publicKey").textContent = `Npub: ${ndkUser.npub}`;
-    document.getElementById(
-      "hexKey"
-    ).textContent = `Hex Key: ${ndkUser.pubkey}`;
+    // Ensure relays are connected before proceeding
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const kind0Events = await fetchKind0Events();
+
+    if (kind0Events.length > 0) {
+      const profile = kind0Events[0];
+      updateUserProfileCard(profile);
+      console.log("Returned profile (kind0)", profile);
+
+      document.getElementById(
+        "publicKey"
+      ).textContent = `Npub: ${nip19.npubEncode(profile.pubkey)}`;
+      document.getElementById(
+        "hexKey"
+      ).textContent = `Hex Key: ${profile.pubkey}`;
+    }
 
     const inactiveMonths = getInactiveMonths();
 
-    const {
-      totalPubkeys,
-      nonActivePubkeys,
-      nonActiveNpubs,
-      activePubkeys,
-      kind0Events,
-    } = await processKind3EventWithProgress(inactiveMonths);
+    const { followedPubkeys, totalPubkeys } = await fetchKind3Events();
+    console.log("fetched follow list:", followedPubkeys, totalPubkeys);
+    const totalPubkeysElement = document.getElementById("totalPubkeys");
+    if (totalPubkeysElement) {
+      totalPubkeysElement.textContent = `Total Pubkeys Found: ${totalPubkeys}`;
+    }
+
+    const { activePubkeys, inactivePubkeys, followedKind0 } =
+      await categorizePubkeys(followedPubkeys, inactiveMonths);
+    console.log("Active pubkeys:", activePubkeys);
+    console.log("Inactive pubkeys:", inactivePubkeys);
 
     displayPubkeyInformation(
       totalPubkeys,
-      nonActivePubkeys,
-      nonActiveNpubs,
+      inactivePubkeys,
+      inactivePubkeys.map(nip19.npubEncode), // Assuming you want to display npubs
       activePubkeys,
-      kind0Events
+      followedKind0
     );
 
     const createButton = document.getElementById("createKind3EventButton");
@@ -52,7 +63,8 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."
     );
   } catch (error) {
-    // Handle errors here if needed
+    console.error(error);
+    alert("Failed to login with Nostr.");
   }
 });
 
@@ -78,11 +90,11 @@ document
         );
       }
     } catch (error) {
-      // Handle errors here if needed
+      console.error(error);
+      alert("Failed to check manual pubkey.");
     }
   });
 
-// Add event listeners for the tabs
 document.querySelectorAll(".tablink").forEach((tablink) => {
   tablink.addEventListener("click", (event) =>
     openTab(event, tablink.getAttribute("data-tab"))
