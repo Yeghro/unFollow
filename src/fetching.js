@@ -1,8 +1,10 @@
 import { relays, activeUser } from "./nostrService.js";
-import { getInactiveMonths } from "./input.js";
 
-// Function to fetch kind 0 events (profile metadata)
-export async function fetchKind0Events(pubkey) {
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function fetchKind0Events(pubkeys) {
   const kind0Events = [];
   const subscriptionId = Math.random().toString(36).substr(2, 9); // Generate a random subscription ID
 
@@ -10,48 +12,58 @@ export async function fetchKind0Events(pubkey) {
     "REQ",
     subscriptionId,
     {
-      authors: [activeUser.pubkey],
+      authors: pubkeys,
       kinds: [0],
+      limit: 1,
     },
   ]);
 
-  return new Promise((resolve, reject) => {
+  const closeRequest = JSON.stringify(["CLOSE", subscriptionId]);
+
+  return new Promise(async (resolve, reject) => {
     const responses = [];
-    let relayCount = Object.keys(relays).length;
-    let completedRelays = 0;
+    const relaysArray = Object.values(relays);
 
-    Object.values(relays).forEach((relay) => {
-      relay.send(request);
-      console.log("Fetch structure:", request);
+    for (const relay of relaysArray) {
+      await new Promise((relayResolve, relayReject) => {
+        relay.send(request);
+        console.log("Fetch structure:", request);
 
-      relay.onmessage = (event) => {
-        const message = JSON.parse(event.data);
+        const onMessageHandler = (event) => {
+          const message = JSON.parse(event.data);
+          console.log("Received kind 0 event:", message);
 
-        if (
-          message[0] === "EVENT" &&
-          message[1] === subscriptionId &&
-          message[2].kind === 0
-        ) {
-          responses.push(message[2]);
-        }
-
-        if (message[0] === "EOSE" && message[1] === subscriptionId) {
-          completedRelays++;
-          if (completedRelays === relayCount) {
-            kind0Events.push(...responses);
-            resolve(kind0Events);
+          if (
+            message[0] === "EVENT" &&
+            message[1] === subscriptionId &&
+            message[2].kind === 0
+          ) {
+            responses.push(message[2]);
           }
-        }
-      };
 
-      relay.onerror = (error) => {
-        console.error(`Error from relay: ${error}`);
-        reject(error);
-      };
-    });
+          if (message[0] === "EOSE" && message[1] === subscriptionId) {
+            relay.send(closeRequest);
+            relay.removeEventListener("message", onMessageHandler); // Remove the event listener
+            relayResolve();
+          }
+        };
+
+        relay.addEventListener("message", onMessageHandler);
+
+        relay.onerror = (error) => {
+          console.error(`Error from relay: ${error}`);
+          relay.removeEventListener("message", onMessageHandler); // Remove the event listener in case of error
+          relayReject(error);
+        };
+      });
+
+      await delay(100); // Short delay between relay requests to avoid concurrent REQs
+    }
+
+    kind0Events.push(...responses);
+    resolve(kind0Events);
   });
 }
-
 export async function fetchKind3Events() {
   const subscriptionId = Math.random().toString(36).substr(2, 9); // Generate a random subscription ID
 
@@ -61,6 +73,7 @@ export async function fetchKind3Events() {
     {
       authors: [activeUser.pubkey],
       kinds: [3],
+      limit: 1,
     },
   ]);
 

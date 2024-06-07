@@ -1,93 +1,148 @@
 import { relays } from "./nostrService.js";
-import { nip19 } from "nostr-tools"; // Assuming nip19 is imported from nostr-tools
 
 export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
-  const subscriptionId = Math.random().toString(36).substr(2, 9); // Generate a random subscription ID
-  const currentTime = Date.now() / 1000; // Current time in seconds
-  const inactiveThreshold = inactiveMonths * 30 * 24 * 60 * 60; // Convert months to seconds
+  const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+  const inactiveThreshold = currentTime - inactiveMonths * 30 * 24 * 60 * 60; // Inactivity threshold in seconds
 
-  const activePubkeys = new Set();
-  const inactivePubkeys = new Set(followedPubkeys);
-  const followedKind0 = {};
+  const activePubkeys = [];
+  let inactivePubkeys = [...followedPubkeys];
+  const followedKind0 = new Set();
 
   const progressBar = document.getElementById("progressBar");
+  console.log("followed pubkeys sent to processing:", followedPubkeys);
 
-  return new Promise((resolve, reject) => {
-    let completedPubkeys = 0;
+  const totalPubkeys = followedPubkeys.length;
 
-    followedPubkeys.forEach((pubkey, index) => {
-      const request = JSON.stringify([
-        "REQ",
-        `${subscriptionId}_${index}`,
-        {
-          authors: [pubkey],
-          kinds: [0, 1], // Kind 0 and Kind 1 events
-          limit: 1, // Only fetch the latest event
-        },
-      ]);
+  for (let i = 0; i < 10; i++) {
+    const initiallyInactive = inactivePubkeys.length;
+    await processPubkeys(
+      inactivePubkeys,
+      activePubkeys,
+      inactivePubkeys,
+      inactiveThreshold,
+      followedKind0
+    );
 
-      Object.values(relays).forEach((relay) => {
-        relay.send(request);
-        console.log(
-          `Fetch latest kind 0 and kind 1 events for pubkey: ${pubkey} sent to relay: ${relay.url}`
-        );
+    const newlyProcessed = initiallyInactive - inactivePubkeys.length;
+    updateProgress(totalPubkeys - inactivePubkeys.length, totalPubkeys);
 
-        relay.onmessage = (event) => {
-          const message = JSON.parse(event.data);
+    if (inactivePubkeys.length === 0) {
+      break; // Exit if no inactive pubkeys remain
+    }
 
-          if (message[0] === "EVENT" && message[1].startsWith(subscriptionId)) {
-            const eventPubkey = message[2].pubkey;
-            console.log(
-              `Received event for pubkey: ${eventPubkey} from relay: ${relay.url}`,
-              message[2]
-            );
+    console.log(`Retrying inactive pubkeys. Attempt ${i + 2}`);
+  }
 
-            if (message[2].kind === 0) {
-              followedKind0[eventPubkey] = message[2];
-            } else if (message[2].kind === 1) {
-              const eventTime = message[2].created_at;
-              console.log(
-                `Current Time: ${currentTime}, Event Time: ${eventTime}, Threshold: ${inactiveThreshold}`
-              );
+  return {
+    activePubkeys,
+    inactivePubkeys,
+    followedKind0,
+  };
 
-              if (currentTime - eventTime <= inactiveThreshold) {
-                console.log(`Pubkey ${eventPubkey} is active`);
-                activePubkeys.add(eventPubkey);
-                inactivePubkeys.delete(eventPubkey);
-              }
-            }
+  async function processPubkeys(
+    pubkeys,
+    activePubkeys,
+    inactivePubkeys,
+    inactiveThreshold,
+    followedKind0
+  ) {
+    const relayListeners = new Map();
+    const subscriptionId = `sub-${Math.random().toString(36).substr(2, 9)}`;
+    let stopFetching = false;
+
+    // Set a global watchdog timer to stop all fetching after 5 minutes
+    const watchdogTimer = setTimeout(() => {
+      stopFetching = true;
+      console.warn(
+        "Max wait time reached, stopping all fetching and closing connections."
+      );
+      for (const relay of Object.values(relays)) {
+        relayListeners.get(relay).forEach((listener) => {
+          relay.removeEventListener("message", listener);
+        });
+        relay.send(JSON.stringify(["CLOSE", subscriptionId])); // Close all subscriptions
+      }
+    }, 20000); // 20 seconds
+
+    const request = JSON.stringify([
+      "REQ",
+      subscriptionId,
+      {
+        authors: pubkeys,
+        kinds: [0, 1], // Requesting kinds 0 and 1
+      },
+    ]);
+
+    for (const relay of Object.values(relays)) {
+      relay.send(request);
+
+      const onMessageHandler = async (event) => {
+        if (stopFetching) return;
+
+        const message = JSON.parse(event.data);
+        console.log("Received event:", message);
+
+        if (message[0] === "EVENT") {
+          const eventPubkey = message[2].pubkey;
+          const eventCreatedAt = message[2].created_at;
+
+          if (message[2].kind === 0) {
+            followedKind0.add(eventPubkey);
           }
 
-          if (message[0] === "EOSE" && message[1].startsWith(subscriptionId)) {
-            completedPubkeys++;
-
-            // Update the progress bar
-            const progress = Math.round(
-              (completedPubkeys / followedPubkeys.length) * 100
-            );
-            progressBar.style.width = `${progress}%`;
-            progressBar.textContent = `${progress}%`;
-
-            if (completedPubkeys >= followedPubkeys.length) {
-              console.log(
-                `Number of unique pubkeys with events: ${activePubkeys.size}`
-              );
-              resolve({
-                activePubkeys: Array.from(activePubkeys),
-                inactivePubkeys: Array.from(inactivePubkeys),
-                followedKind0,
-              });
+          if (message[2].kind === 1 && eventCreatedAt > inactiveThreshold) {
+            activePubkeys.push(eventPubkey);
+            const index = inactivePubkeys.indexOf(eventPubkey);
+            if (index !== -1) {
+              inactivePubkeys.splice(index, 1);
             }
           }
-        };
+        }
 
-        relay.onerror = (error) => {
-          console.error(
-            `Error from relay ${relay.url} for pubkey ${pubkey}: ${error}`
-          );
-          reject(error);
-        };
-      });
+        if (message[0] === "EOSE" && message[1] === subscriptionId) {
+          relay.send(JSON.stringify(["CLOSE", subscriptionId]));
+          relay.removeEventListener("message", onMessageHandler); // Remove the event listener
+        }
+
+        if (message[0] === "NOTICE" && message[1].includes("error: too fast")) {
+          console.warn("Too many requests, slowing down...");
+          await delay(2000); // Additional delay on "too fast" error
+        }
+      };
+
+      relay.addEventListener("message", onMessageHandler);
+
+      relay.onerror = (error) => {
+        console.error(`Error from relay: ${error}`);
+        relay.removeEventListener("message", onMessageHandler); // Remove the event listener in case of error
+      };
+
+      if (!relayListeners.has(relay)) {
+        relayListeners.set(relay, []);
+      }
+      relayListeners.get(relay).push(onMessageHandler);
+    }
+
+    await delay(500); // Delay between individual relay requests to avoid rate limiting
+
+    // Clear the watchdog timer if all events are fetched before the timeout
+    clearTimeout(watchdogTimer);
+
+    // Clean up event listeners after completion or timeout
+    relayListeners.forEach((listeners, relay) => {
+      listeners.forEach((listener) =>
+        relay.removeEventListener("message", listener)
+      );
     });
-  });
+  }
+
+  function updateProgress(completed, total) {
+    const progress = Math.round((completed / total) * 100);
+    progressBar.style.width = `${progress}%`;
+    progressBar.textContent = `${progress}%`;
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

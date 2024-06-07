@@ -110,7 +110,7 @@ export function displayPubkeyInformation(
       console.log(`No kind 0 event found for pubkey: ${pubkey}`);
     }
 
-    nonActivePubkeysList.appendChild(listItem);
+    document.getElementById("Pubkeys").appendChild(listItem);
   });
 
   // Ensure inactiveNpubs is an array before iterating
@@ -138,7 +138,7 @@ export function displayPubkeyInformation(
         this.style.backgroundColor = "rgb(46, 0, 46)";
       });
 
-      nonActiveNpubsList.appendChild(listItem);
+      document.getElementById("Npubs").appendChild(listItem);
     });
   } else {
     console.error("inactiveNpubs is not an array:", inactiveNpubs);

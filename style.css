@@ -57,21 +57,20 @@ button:hover {
 }
 
 #progressContainer {
-  width: 80%;
-  background-color: #1a1a1a;
-  margin: 20px auto;
-  border-radius: 5px;
+  width: 100%;
+  background-color: #343434;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 #progressBar {
   width: 0%;
-  height: 30px;
+  height: 20px;
   background: linear-gradient(to right, orange, purple);
-  border-radius: 5px;
   text-align: center;
-  line-height: 30px;
+  line-height: 20px;
   color: white;
-  transition: width 0.3s ease;
+  transition: width 0.5s ease;
 }
 
 .spinner {
@@ -133,6 +132,11 @@ button:hover {
 
 .tablink.active {
   background-color: #ccc;
+}
+
+.tabcontent {
+  display: none;
+  padding: 20px;
 }
 
 /* Styles for the user profile card */

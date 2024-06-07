@@ -13,8 +13,8 @@ export let relayUrls = [
   "wss://relay.damus.io",
   "wss://nostr.wine",
   "wss://relay.snort.social",
-  "wss://eden.nostr.land",
   "wss://nostr.bitcoiner.social",
+  "wss://nostrpub.yeghro.site",
 ];
 
 export let relays = {};

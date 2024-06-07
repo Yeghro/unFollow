@@ -1,9 +1,14 @@
-import { connectToRelays } from "./nostrService.js";
-import { updateUserProfileCard, displayPubkeyInformation } from "./display.js";
+import { connectToRelays, activeUser } from "./nostrService.js";
+import {
+  updateUserProfileCard,
+  displayPubkeyInformation,
+  openTab,
+} from "./display.js";
 import { fetchKind0Events, fetchKind3Events } from "./fetching.js";
 import { nip19 } from "nostr-tools";
 import { getInactiveMonths } from "./input.js";
 import { categorizePubkeys } from "./eventProcessing.js";
+import { createKind3Event } from "./createkind3.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
   try {
@@ -13,7 +18,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     // Ensure relays are connected before proceeding
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const kind0Events = await fetchKind0Events();
+    const kind0Events = await fetchKind0Events([activeUser.pubkey]);
 
     if (kind0Events.length > 0) {
       const profile = kind0Events[0];
