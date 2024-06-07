@@ -4,15 +4,17 @@ import { NDKNip07Signer } from "@nostr-dev-kit/ndk";
 let nip07Signer = null;
 let activeUser = null;
 
-try {
-  nip07Signer = new NDKNip07Signer(5000);
-  activeUser = await nip07Signer.blockUntilReady();
-  console.log("Signer is ready and user is:", activeUser);
-} catch (error) {
-  console.warn("NDKNip07Signer not available or user denied access:", error);
-  nip07Signer = null;
-  activeUser = null;
-}
+(async () => {
+  try {
+    nip07Signer = new NDKNip07Signer(5000);
+    activeUser = await nip07Signer.blockUntilReady();
+    // console.log("Signer is ready and user is:", activeUser);
+  } catch (error) {
+    console.warn("NDKNip07Signer not available or user denied access:", error);
+    nip07Signer = null;
+    activeUser = null;
+  }
+})();
 
 export { nip07Signer, activeUser };
 
@@ -33,17 +35,17 @@ export function connectToRelays() {
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
-      console.log(`Connected to relay: ${url}`);
+      // console.log(`Connected to relay: ${url}`);
       relays[url] = ws;
     };
 
     ws.onmessage = (event) => {
-      console.log(`Message from ${url}:`, event.data);
+      // console.log(`Message from ${url}:`, event.data);
       // Handle incoming messages
     };
 
     ws.onclose = () => {
-      console.log(`Disconnected from relay: ${url}`);
+      // console.log(`Disconnected from relay: ${url}`);
       delete relays[url];
     };
 
@@ -51,5 +53,5 @@ export function connectToRelays() {
       console.error(`Error from relay ${url}:`, error);
     };
   });
-  console.log("Established Relay Instance:", relays);
+  // console.log("Established Relay Instance:", relays);
 }

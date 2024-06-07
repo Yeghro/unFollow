@@ -1,6 +1,6 @@
 export function updateUserProfileCard(profile) {
   const profileData = JSON.parse(profile.content);
-  console.log("Parsed profile:", profileData);
+  // console.log("Parsed profile:", profileData);
   const userProfileCard = document.getElementById("userProfileCard");
   const userName = document.getElementById("userName");
   const userBio = document.getElementById("userBio");
@@ -65,12 +65,12 @@ export function displayPubkeyInformation(
   activePubkeys,
   followedKind0
 ) {
-  console.log("Displaying pubkey information...");
-  console.log("Total Pubkeys:", totalPubkeys);
-  console.log("Non-active Pubkeys:", nonActivePubkeys);
-  console.log("Inactive Npubs:", inactiveNpubs);
-  console.log("Active Pubkeys:", activePubkeys);
-  console.log("Followed Kind 0:", followedKind0);
+  // console.log("Displaying pubkey information...");
+  // console.log("Total Pubkeys:", totalPubkeys);
+  // console.log("Non-active Pubkeys:", nonActivePubkeys);
+  // console.log("Inactive Npubs:", inactiveNpubs);
+  // console.log("Active Pubkeys:", activePubkeys);
+  // console.log("Followed Kind 0:", followedKind0);
 
   document.getElementById(
     "totalPubkeys"
@@ -82,7 +82,7 @@ export function displayPubkeyInformation(
   nonActiveNpubsList.innerHTML = ""; // Clear previous list
 
   nonActivePubkeys.forEach((pubkey) => {
-    console.log(`Processing non-active pubkey: ${pubkey}`);
+    // console.log(`Processing non-active pubkey: ${pubkey}`);
     const listItem = document.createElement("li");
     const link = document.createElement("a");
     link.href = `https://primal.net/p/${pubkey}`;
@@ -107,7 +107,7 @@ export function displayPubkeyInformation(
     // Find the associated kind 0 event to display name and nip05
     const kind0Event = followedKind0.get(pubkey);
     if (kind0Event) {
-      console.log(`Found kind 0 event for pubkey: ${pubkey}`, kind0Event);
+      // console.log(`Found kind 0 event for pubkey: ${pubkey}`, kind0Event);
       const content = JSON.parse(kind0Event.content);
       const name = content.name || "N/A";
       const nip05 = content.nip05 || "N/A";
@@ -116,7 +116,7 @@ export function displayPubkeyInformation(
       info.style.color = "rgb(193, 177, 148)";
       listItem.appendChild(info);
     } else {
-      console.log(`No kind 0 event found for pubkey: ${pubkey}`);
+      // console.log(`No kind 0 event found for pubkey: ${pubkey}`);
     }
 
     nonActivePubkeysList.appendChild(listItem);
@@ -125,7 +125,7 @@ export function displayPubkeyInformation(
   // Ensure inactiveNpubs is an array before iterating
   if (Array.isArray(inactiveNpubs)) {
     inactiveNpubs.forEach((npub) => {
-      console.log(`Processing inactive npub: ${npub}`);
+      // console.log(`Processing inactive npub: ${npub}`);
       const listItem = document.createElement("li");
       const link = document.createElement("a");
       link.href = `https://primal.net/p/${npub}`;
@@ -150,7 +150,7 @@ export function displayPubkeyInformation(
       nonActiveNpubsList.appendChild(listItem);
     });
   } else {
-    console.error("inactiveNpubs is not an array:", inactiveNpubs);
+    // console.error("inactiveNpubs is not an array:", inactiveNpubs);
   }
 
   const totalNonActivePubkeys = document.createElement("p");
@@ -163,5 +163,5 @@ export function displayPubkeyInformation(
   }`;
   nonActiveNpubsList.appendChild(totalNonActiveNpubs);
 
-  console.log("Display update complete.");
+  // console.log("Display update complete.");
 }

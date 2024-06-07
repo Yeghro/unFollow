@@ -1,17 +1,12 @@
-import { defineConfig } from "vite";
-
-// https://vitejs.dev/config/
-export default defineConfig({
+export default {
+  root: "./",
   server: {
-    port: 3000, // You can specify the port you prefer
+    port: 3000,
   },
   build: {
-    outDir: "dist", // Output directory for build files
-    sourcemap: true, // Generate source maps for debugging
-  },
-  resolve: {
-    alias: {
-      "@": "/src", // Aliases '@' to the '/src' directory
+    outDir: "./dist",
+    rollupOptions: {
+      input: "./src/main.js", // Adjust the path to your main JavaScript file
     },
   },
-});
+};

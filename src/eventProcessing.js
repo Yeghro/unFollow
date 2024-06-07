@@ -9,7 +9,7 @@ export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
   const followedKind0 = new Map(); // Change to Map to store event objects
 
   const progressBar = document.getElementById("progressBar");
-  console.log("followed pubkeys sent to processing:", followedPubkeys);
+  // console.log("followed pubkeys sent to processing:", followedPubkeys);
 
   const totalRetries = 10; // Total number of retries
   const totalPubkeys = followedPubkeys.length;
@@ -30,7 +30,7 @@ export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
       break; // Exit if no inactive pubkeys remain
     }
 
-    console.log(`Retrying inactive pubkeys. Attempt ${i + 2}`);
+    // console.log(`Retrying inactive pubkeys. Attempt ${i + 2}`);
   }
 
   return {
@@ -53,9 +53,9 @@ export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
     // Set a global watchdog timer to stop all fetching after 20 seconds
     const watchdogTimer = setTimeout(() => {
       stopFetching = true;
-      console.warn(
-        "Max wait time reached, stopping all fetching and closing connections."
-      );
+      // console.warn(
+      //   "Max wait time reached, stopping all fetching and closing connections."
+      // );
       for (const relay of Object.values(relays)) {
         relayListeners.get(relay).forEach((listener) => {
           relay.removeEventListener("message", listener);
@@ -80,7 +80,7 @@ export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
         if (stopFetching) return;
 
         const message = JSON.parse(event.data);
-        console.log("Received event:", message);
+        // console.log("Received event:", message);
 
         if (message[0] === "EVENT") {
           const eventPubkey = message[2].pubkey;
@@ -105,7 +105,7 @@ export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
         }
 
         if (message[0] === "NOTICE" && message[1].includes("error: too fast")) {
-          console.warn("Too many requests, slowing down...");
+          // console.warn("Too many requests, slowing down...");
           await delay(2000); // Additional delay on "too fast" error
         }
       };
@@ -113,7 +113,7 @@ export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
       relay.addEventListener("message", onMessageHandler);
 
       relay.onerror = (error) => {
-        console.error(`Error from relay: ${error}`);
+        // console.error(`Error from relay: ${error}`);
         relay.removeEventListener("message", onMessageHandler); // Remove the event listener in case of error
       };
 
@@ -143,7 +143,7 @@ export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
       progressBar.style.width = `${progress}%`;
       progressBar.textContent = `${progress}%`;
     } else {
-      console.error("Progress bar element not found");
+      // console.error("Progress bar element not found");
     }
   }
 }

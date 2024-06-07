@@ -4,10 +4,10 @@ import { getEventHash } from "nostr-tools";
 export async function createKind3Event(activePubkeys) {
   // Ensure activePubkeys is not empty before creating the event
   if (!activePubkeys || activePubkeys.length === 0) {
-    console.error("No active pubkeys provided. Aborting event creation.");
+    // console.error("No active pubkeys provided. Aborting event creation.");
     return;
   }
-  console.log("Active pubkeys to be published:", activePubkeys);
+  //   console.log("Active pubkeys to be published:", activePubkeys);
 
   const kind3Event = {
     kind: 3,
@@ -21,14 +21,14 @@ export async function createKind3Event(activePubkeys) {
     // Calculate the event ID and sign the event
     kind3Event.id = getEventHash(kind3Event);
     kind3Event.sig = await nip07Signer.sign(kind3Event); // Use nip07Signer for signing
-    console.log("Event successfully signed:", kind3Event);
+    // console.log("Event successfully signed:", kind3Event);
 
     // Publish the signed event to all connected relays
     await publishEventToRelays(kind3Event);
 
-    console.log("Event successfully published:", kind3Event);
+    // console.log("Event successfully published:", kind3Event);
   } catch (error) {
-    console.error("Error signing or publishing event:", error);
+    // console.error("Error signing or publishing event:", error);
     throw error;
   }
 }
@@ -45,22 +45,23 @@ async function publishEventToRelays(signedEvent) {
         const message = JSON.parse(event.data);
         if (message[0] === "OK" && message[1] === signedEvent.id) {
           if (message[2] === true) {
-            console.log(`Event accepted by relay: ${relayUrl}`);
+            // console.log(`Event accepted by relay: ${relayUrl}`);
             acceptedCount++;
           } else {
-            console.warn(
-              `Event rejected by relay: ${relayUrl} - ${message[3]}`
-            );
+            // console.warn(
+            //   `Event rejected by relay: ${relayUrl} - ${message[3]}`
+            // );
           }
+          1;
           cleanup();
           checkCompletion();
         } else if (message[0] === "NOTICE") {
-          console.warn(`Notice from relay ${relayUrl}: ${message[1]}`);
+          //   console.warn(`Notice from relay ${relayUrl}: ${message[1]}`);
         }
       };
 
       const onErrorHandler = (error) => {
-        console.error(`Error from relay: ${relayUrl}`, error);
+        // console.error(`Error from relay: ${relayUrl}`, error);
         cleanup();
         checkCompletion();
       };

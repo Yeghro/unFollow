@@ -27,11 +27,11 @@ export async function fetchKind0Events(pubkeys) {
     for (const relay of relaysArray) {
       await new Promise((relayResolve, relayReject) => {
         relay.send(request);
-        console.log("Fetch structure:", request);
+        // console.log("Fetch structure:", request);
 
         const onMessageHandler = (event) => {
           const message = JSON.parse(event.data);
-          console.log("Received kind 0 event:", message);
+          // console.log("Received kind 0 event:", message);
 
           if (
             message[0] === "EVENT" &&
@@ -51,7 +51,7 @@ export async function fetchKind0Events(pubkeys) {
         relay.addEventListener("message", onMessageHandler);
 
         relay.onerror = (error) => {
-          console.error(`Error from relay: ${error}`);
+          // console.error(`Error from relay: ${error}`);
           relay.removeEventListener("message", onMessageHandler); // Remove the event listener in case of error
           relayReject(error);
         };
@@ -84,7 +84,7 @@ export async function fetchKind3Events(pubkey) {
 
     Object.values(relays).forEach((relay) => {
       relay.send(request);
-      console.log("Fetch structure:", request);
+      // console.log("Fetch structure:", request);
 
       relay.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -94,7 +94,7 @@ export async function fetchKind3Events(pubkey) {
           message[1] === subscriptionId &&
           message[2].kind === 3
         ) {
-          console.log("Received kind 3 event:", message[2]);
+          // console.log("Received kind 3 event:", message[2]);
           events.push(message[2]);
         }
 
@@ -111,7 +111,7 @@ export async function fetchKind3Events(pubkey) {
             if (latestEvent) {
               const followedPubkeys = new Set();
               const tags = latestEvent.tags;
-              console.log("Tags in the latest event:", tags);
+              // console.log("Tags in the latest event:", tags);
               if (Array.isArray(tags)) {
                 tags.forEach((tag) => {
                   if (tag[0] === "p" && tag[1]) {
@@ -135,7 +135,7 @@ export async function fetchKind3Events(pubkey) {
       };
 
       relay.onerror = (error) => {
-        console.error(`Error from relay: ${error}`);
+        // console.error(`Error from relay: ${error}`);
         reject(error);
       };
     });
