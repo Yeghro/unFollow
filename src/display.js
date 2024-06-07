@@ -46,7 +46,16 @@ export function openTab(evt, tabName) {
     tablinks[i].className = tablinks[i].className.replace(" active", "");
   }
   document.getElementById(tabName).style.display = "block";
-  evt.currentTarget.className += " active";
+  if (evt) {
+    evt.currentTarget.className += " active";
+  } else {
+    const defaultTab = document.querySelector(
+      `.tablink[data-tab="${tabName}"]`
+    );
+    if (defaultTab) {
+      defaultTab.className += " active";
+    }
+  }
 }
 
 export function displayPubkeyInformation(
@@ -96,7 +105,7 @@ export function displayPubkeyInformation(
     });
 
     // Find the associated kind 0 event to display name and nip05
-    const kind0Event = followedKind0[pubkey];
+    const kind0Event = followedKind0.get(pubkey);
     if (kind0Event) {
       console.log(`Found kind 0 event for pubkey: ${pubkey}`, kind0Event);
       const content = JSON.parse(kind0Event.content);
@@ -110,7 +119,7 @@ export function displayPubkeyInformation(
       console.log(`No kind 0 event found for pubkey: ${pubkey}`);
     }
 
-    document.getElementById("Pubkeys").appendChild(listItem);
+    nonActivePubkeysList.appendChild(listItem);
   });
 
   // Ensure inactiveNpubs is an array before iterating
@@ -138,7 +147,7 @@ export function displayPubkeyInformation(
         this.style.backgroundColor = "rgb(46, 0, 46)";
       });
 
-      document.getElementById("Npubs").appendChild(listItem);
+      nonActiveNpubsList.appendChild(listItem);
     });
   } else {
     console.error("inactiveNpubs is not an array:", inactiveNpubs);

@@ -6,7 +6,7 @@ import {
 } from "./display.js";
 import { fetchKind0Events, fetchKind3Events } from "./fetching.js";
 import { nip19 } from "nostr-tools";
-import { getInactiveMonths } from "./input.js";
+import { getInactiveMonths, handleManualPubkeyCheck } from "./input.js";
 import { categorizePubkeys } from "./eventProcessing.js";
 import { createKind3Event } from "./createkind3.js";
 
@@ -35,7 +35,9 @@ document.getElementById("loginButton").addEventListener("click", async () => {
 
     const inactiveMonths = getInactiveMonths();
 
-    const { followedPubkeys, totalPubkeys } = await fetchKind3Events();
+    const { followedPubkeys, totalPubkeys } = await fetchKind3Events(
+      activeUser.pubkey
+    );
     console.log("fetched follow list:", followedPubkeys, totalPubkeys);
     const totalPubkeysElement = document.getElementById("totalPubkeys");
     if (totalPubkeysElement) {
@@ -55,12 +57,20 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       followedKind0
     );
 
+    // Open the default tab (nonActivePubkeys)
+    openTab(null, "Pubkeys");
+
     const createButton = document.getElementById("createKind3EventButton");
     createButton.style.display = "block";
     createButton.addEventListener("click", async () => {
       if (confirm("Are you sure you want to create a new kind 3 event?")) {
-        await createKind3Event(activePubkeys);
-        alert("New kind 3 event created successfully.");
+        try {
+          await createKind3Event(activePubkeys);
+          alert("New kind 3 event created successfully.");
+        } catch (error) {
+          console.error("Error creating kind 3 event:", error);
+          alert("Failed to create kind 3 event.");
+        }
       }
     });
 

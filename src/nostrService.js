@@ -1,17 +1,26 @@
 import { NDKNip07Signer } from "@nostr-dev-kit/ndk";
 
-// Instantiate the NDKNip07Signer
-const nip07Signer = new NDKNip07Signer(5000);
+// Attempt to instantiate the NDKNip07Signer
+let nip07Signer = null;
+let activeUser = null;
 
-export const activeUser = await nip07Signer.blockUntilReady();
-console.log("Signer is ready and user is:", activeUser);
+try {
+  nip07Signer = new NDKNip07Signer(5000);
+  activeUser = await nip07Signer.blockUntilReady();
+  console.log("Signer is ready and user is:", activeUser);
+} catch (error) {
+  console.warn("NDKNip07Signer not available or user denied access:", error);
+  nip07Signer = null;
+  activeUser = null;
+}
+
+export { nip07Signer, activeUser };
 
 export let relayUrls = [
   "wss://purplepag.es",
   "wss://relay.nostr.band",
   "wss://relay.primal.net",
   "wss://relay.damus.io",
-  "wss://nostr.wine",
   "wss://relay.snort.social",
   "wss://nostr.bitcoiner.social",
   "wss://nostrpub.yeghro.site",

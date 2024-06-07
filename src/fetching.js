@@ -1,4 +1,4 @@
-import { relays, activeUser } from "./nostrService.js";
+import { relays } from "./nostrService.js";
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -64,14 +64,14 @@ export async function fetchKind0Events(pubkeys) {
     resolve(kind0Events);
   });
 }
-export async function fetchKind3Events() {
+export async function fetchKind3Events(pubkey) {
   const subscriptionId = Math.random().toString(36).substr(2, 9); // Generate a random subscription ID
 
   const request = JSON.stringify([
     "REQ",
     subscriptionId,
     {
-      authors: [activeUser.pubkey],
+      authors: [pubkey],
       kinds: [3],
       limit: 1,
     },
