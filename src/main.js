@@ -11,9 +11,16 @@ import { categorizePubkeys } from "./eventProcessing.js";
 import { createKind3Event } from "./createkind3.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
+  const loginButton = document.getElementById("loginButton");
+  const loadingSpinner = document.getElementById("loadingSpinner");
+
+  // Show the spinner and hide the login button
+  loginButton.style.display = "none";
+  loadingSpinner.style.display = "block";
+
   try {
     // Connect to relays only when login button is clicked
-    connectToRelays();
+    await connectToRelays();
 
     // Ensure relays are connected before proceeding
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -23,7 +30,6 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     if (kind0Events.length > 0) {
       const profile = kind0Events[0];
       updateUserProfileCard(profile);
-      // console.log("Returned profile (kind0)", profile);
 
       document.getElementById(
         "publicKey"
@@ -38,7 +44,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     const { followedPubkeys, totalPubkeys } = await fetchKind3Events(
       activeUser.pubkey
     );
-    // console.log("fetched follow list:", followedPubkeys, totalPubkeys);
+
     const totalPubkeysElement = document.getElementById("totalPubkeys");
     if (totalPubkeysElement) {
       totalPubkeysElement.textContent = `Total Pubkeys Found: ${totalPubkeys}`;
@@ -46,8 +52,6 @@ document.getElementById("loginButton").addEventListener("click", async () => {
 
     const { activePubkeys, inactivePubkeys, followedKind0 } =
       await categorizePubkeys(followedPubkeys, inactiveMonths);
-    // console.log("Active pubkeys:", activePubkeys);
-    // console.log("Inactive pubkeys:", inactivePubkeys);
 
     displayPubkeyInformation(
       totalPubkeys,
@@ -68,7 +72,6 @@ document.getElementById("loginButton").addEventListener("click", async () => {
           await createKind3Event(activePubkeys);
           alert("New kind 3 event created successfully.");
         } catch (error) {
-          // console.error("Error creating kind 3 event:", error);
           alert("Failed to create kind 3 event.");
         }
       }
@@ -78,8 +81,9 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."
     );
   } catch (error) {
-    // console.error(error);
     alert("Failed to login with Nostr.");
+  } finally {
+    loadingSpinner.style.display = "none"; // Hide the spinner after login is complete
   }
 });
 
@@ -105,7 +109,6 @@ document
         );
       }
     } catch (error) {
-      // console.error(error);
       alert("Failed to check manual pubkey.");
     }
   });
