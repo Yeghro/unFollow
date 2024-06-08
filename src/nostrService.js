@@ -20,9 +20,9 @@ export async function connectToRelays() {
   try {
     nip07Signer = new NDKNip07Signer(5000);
     activeUser = await nip07Signer.blockUntilReady();
-    console.log("Signer is ready and user is:", activeUser);
+    // console.log("Signer is ready and user is:", activeUser);
   } catch (error) {
-    console.warn("NDKNip07Signer not available or user denied access:", error);
+    // console.warn("NDKNip07Signer not available or user denied access:", error);
     nip07Signer = null;
     activeUser = null;
     return; // Exit the function if signing fails
@@ -37,8 +37,7 @@ export async function connectToRelays() {
     };
 
     ws.onmessage = (event) => {
-      console.log(`Message from ${url}:`, event.data);
-      // Handle incoming messages
+      // console.log(`Message from ${url}:`, event.data);
     };
 
     ws.onclose = () => {
