@@ -11,7 +11,7 @@ export let relayUrls = [
   "wss://nostrpub.yeghro.site",
 ];
 
-export let relays = {};
+let relays = {};
 
 let nip07Signer = null;
 let activeUser = null;
@@ -20,14 +20,14 @@ export async function connectToRelays() {
   try {
     nip07Signer = new NDKNip07Signer(5000);
     activeUser = await nip07Signer.blockUntilReady();
-    // console.log("Signer is ready and user is:", activeUser);
+    console.log("Signer is ready and user is:", activeUser);
   } catch (error) {
-    // console.warn("NDKNip07Signer not available or user denied access:", error);
+    console.warn("NDKNip07Signer not available or user denied access:", error);
     nip07Signer = null;
     activeUser = null;
-    return; // Exit the function if signing fails
   }
 
+  // Proceed with connecting to relays regardless of signer availability
   relayUrls.forEach((url) => {
     const ws = new WebSocket(url);
 
@@ -53,4 +53,4 @@ export async function connectToRelays() {
   console.log("Established Relay Instance:", relays);
 }
 
-export { nip07Signer, activeUser };
+export { nip07Signer, activeUser, relays };

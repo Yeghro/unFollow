@@ -20,6 +20,7 @@ export async function handleManualPubkeyCheck() {
   if (manualPubkey) {
     document.getElementById("loadingSpinner").style.display = "block";
     try {
+      console.log("manual pubkey entered by user:", manualPubkey);
       // Check if the input is an npub and convert to hex pubkey if necessary
       if (manualPubkey.startsWith("npub")) {
         const decoded = nip19.decode(manualPubkey);
@@ -27,9 +28,10 @@ export async function handleManualPubkeyCheck() {
       } else if (!/^[0-9a-fA-F]{64}$/.test(manualPubkey)) {
         throw new Error("Invalid pubkey or npub format");
       }
+      console.log("manual pubkey decoded:", manualPubkey);
 
       // Connect to relays
-      connectToRelays();
+      await connectToRelays();
 
       // Ensure relays are connected before proceeding
       await new Promise((resolve) => setTimeout(resolve, 1000));

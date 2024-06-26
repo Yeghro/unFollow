@@ -65,7 +65,7 @@ export async function fetchKind0Events(pubkeys) {
   });
 }
 export async function fetchKind3Events(pubkey) {
-  const subscriptionId = Math.random().toString(36).substr(2, 9); // Generate a random subscription ID
+  const subscriptionId = Math.random().toString(36).substr(2, 9);
 
   const request = JSON.stringify([
     "REQ",
@@ -84,7 +84,6 @@ export async function fetchKind3Events(pubkey) {
 
     Object.values(relays).forEach((relay) => {
       relay.send(request);
-      // console.log("Fetch structure:", request);
 
       relay.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -94,7 +93,6 @@ export async function fetchKind3Events(pubkey) {
           message[1] === subscriptionId &&
           message[2].kind === 3
         ) {
-          // console.log("Received kind 3 event:", message[2]);
           events.push(message[2]);
         }
 
@@ -111,15 +109,13 @@ export async function fetchKind3Events(pubkey) {
             if (latestEvent) {
               const followedPubkeys = new Set();
               const tags = latestEvent.tags;
-              // console.log("Tags in the latest event:", tags);
               if (Array.isArray(tags)) {
                 tags.forEach((tag) => {
-                  if (tag[0] === "p" && tag[1]) {
+                  if (tag[0] === "p" && tag[1] && isValidHexKey(tag[1])) {
                     followedPubkeys.add(tag[1]);
                   }
                 });
               }
-              // Now resolve the promise with the list of pubkeys and the total number of pubkeys
               resolve({
                 followedPubkeys: Array.from(followedPubkeys),
                 totalPubkeys: followedPubkeys.size,
@@ -135,9 +131,14 @@ export async function fetchKind3Events(pubkey) {
       };
 
       relay.onerror = (error) => {
-        // console.error(`Error from relay: ${error}`);
         reject(error);
       };
     });
   });
+}
+
+// Helper function to check if a string is a valid hex key
+function isValidHexKey(str) {
+  // Check if the string is 64 characters long and contains only hexadecimal characters
+  return /^[0-9a-fA-F]{64}$/.test(str);
 }
