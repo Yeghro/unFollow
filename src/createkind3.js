@@ -1,7 +1,7 @@
 import { activeUser, nip07Signer, relays } from "./nostrService.js";
 import { getEventHash } from "nostr-tools";
 
-export async function createKind3Event(activePubkeys) {
+export async function createKind3Event(activePubkeys, eventContent = relays) {
   // Ensure activePubkeys is not empty before creating the event
   if (!activePubkeys || activePubkeys.length === 0) {
     // console.error("No active pubkeys provided. Aborting event creation.");
@@ -9,14 +9,19 @@ export async function createKind3Event(activePubkeys) {
   }
   //   console.log("Active pubkeys to be published:", activePubkeys);
 
+  // If eventContent is not provided or is empty, default to relays
+  if (!eventContent || eventContent.length === 0) {
+    eventContent = JSON.stringify(relays); // Assuming relays is an object that can be stringified
+  }
+
   const kind3Event = {
     kind: 3,
     tags: activePubkeys.map((pubkey) => ["p", pubkey]),
-    content: "",
+    content: eventContent,
     created_at: Math.floor(Date.now() / 1000),
     pubkey: activeUser.pubkey, // Ensure the hexKey is used as the author's pubkey
   };
-
+  // console.log("event to be published:", kind3Event);
   try {
     // Calculate the event ID and sign the event
     kind3Event.id = getEventHash(kind3Event);

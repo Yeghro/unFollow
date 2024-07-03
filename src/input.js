@@ -20,7 +20,7 @@ export async function handleManualPubkeyCheck() {
   if (manualPubkey) {
     document.getElementById("loadingSpinner").style.display = "block";
     try {
-      console.log("manual pubkey entered by user:", manualPubkey);
+      // console.log("manual pubkey entered by user:", manualPubkey);
       // Check if the input is an npub and convert to hex pubkey if necessary
       if (manualPubkey.startsWith("npub")) {
         const decoded = nip19.decode(manualPubkey);
@@ -28,7 +28,7 @@ export async function handleManualPubkeyCheck() {
       } else if (!/^[0-9a-fA-F]{64}$/.test(manualPubkey)) {
         throw new Error("Invalid pubkey or npub format");
       }
-      console.log("manual pubkey decoded:", manualPubkey);
+      // console.log("manual pubkey decoded:", manualPubkey);
 
       // Connect to relays
       await connectToRelays();
@@ -43,7 +43,7 @@ export async function handleManualPubkeyCheck() {
       }
       const profile = kind0Events[0];
       updateUserProfileCard(profile);
-      console.log("Returned profile (kind0)", profile);
+      // console.log("Returned profile (kind0)", profile);
 
       document.getElementById(
         "publicKey"
@@ -55,13 +55,13 @@ export async function handleManualPubkeyCheck() {
       const inactiveMonths = getInactiveMonths();
 
       // Fetch kind 3 events to get the follow list
-      const { followedPubkeys } = await fetchKind3Events(manualPubkey);
+      const followedPubkeys = await fetchKind3Events(manualPubkey);
 
       // Categorize the pubkeys
       const { activePubkeys, inactivePubkeys, followedKind0 } =
         await categorizePubkeys(followedPubkeys, inactiveMonths);
-      console.log("Active pubkeys:", activePubkeys);
-      console.log("Inactive pubkeys:", inactivePubkeys);
+      // console.log("Active pubkeys:", activePubkeys);
+      // console.log("Inactive pubkeys:", inactivePubkeys);
 
       displayPubkeyInformation(
         followedPubkeys.length,

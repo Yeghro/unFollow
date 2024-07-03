@@ -76,6 +76,7 @@ export async function fetchKind3Events(pubkey) {
       limit: 1,
     },
   ]);
+  // console.log("relays to be used for kind3 fetch:", relays);
 
   return new Promise((resolve, reject) => {
     const events = [];
@@ -95,6 +96,7 @@ export async function fetchKind3Events(pubkey) {
         ) {
           events.push(message[2]);
         }
+        // console.log("fetched kind3 events:", events);
 
         if (message[0] === "EOSE" && message[1] === subscriptionId) {
           completedRelays++;
@@ -108,7 +110,9 @@ export async function fetchKind3Events(pubkey) {
 
             if (latestEvent) {
               const followedPubkeys = new Set();
+              let eventContent = latestEvent.content;
               const tags = latestEvent.tags;
+              // console.log(" latest kind3:", latestEvent);
               if (Array.isArray(tags)) {
                 tags.forEach((tag) => {
                   if (tag[0] === "p" && tag[1] && isValidHexKey(tag[1])) {
@@ -119,11 +123,13 @@ export async function fetchKind3Events(pubkey) {
               resolve({
                 followedPubkeys: Array.from(followedPubkeys),
                 totalPubkeys: followedPubkeys.size,
+                eventContent,
               });
             } else {
               resolve({
                 followedPubkeys: [],
                 totalPubkeys: 0,
+                eventContent: null,
               });
             }
           }

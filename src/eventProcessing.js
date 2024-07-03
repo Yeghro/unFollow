@@ -8,13 +8,9 @@ export async function categorizePubkeys(followedPubkeys, inactiveMonths = 8) {
   let inactivePubkeys = [...followedPubkeys];
   const followedKind0 = new Map(); // Change to Map to store event objects
 
-  const progressBar = document.getElementById("progressBar");
-
   const totalRetries = 10; // Total number of retries
-  const totalPubkeys = followedPubkeys.length;
 
   for (let i = 0; i < totalRetries; i++) {
-    const initiallyInactive = inactivePubkeys.length;
     await processPubkeys(
       inactivePubkeys,
       activePubkeys,
