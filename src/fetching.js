@@ -112,13 +112,14 @@ export async function fetchKind3Events(pubkey) {
               const followedPubkeys = new Set();
               let eventContent = latestEvent.content;
               const tags = latestEvent.tags;
-              // console.log(" latest kind3:", latestEvent);
+              console.log(" latest kind3:", latestEvent);
               if (Array.isArray(tags)) {
                 tags.forEach((tag) => {
                   if (tag[0] === "p" && tag[1] && isValidHexKey(tag[1])) {
                     followedPubkeys.add(tag[1]);
                   }
                 });
+                console.log("extracted followedPubkeys:", followedPubkeys);
               }
               resolve({
                 followedPubkeys: Array.from(followedPubkeys),

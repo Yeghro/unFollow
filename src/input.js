@@ -55,13 +55,21 @@ export async function handleManualPubkeyCheck() {
       const inactiveMonths = getInactiveMonths();
 
       // Fetch kind 3 events to get the follow list
-      const followedPubkeys = await fetchKind3Events(manualPubkey);
+      const { followedPubkeys, totalPubkeys } = await fetchKind3Events(
+        manualPubkey
+      );
+      const totalPubkeysElement = document.getElementById("totalPubkeys");
+      if (totalPubkeysElement) {
+        totalPubkeysElement.textContent = `Total Pubkeys Found: ${totalPubkeys}`;
+      }
+
+      console.log("kind3 returned to input:", followedPubkeys);
 
       // Categorize the pubkeys
       const { activePubkeys, inactivePubkeys, followedKind0 } =
         await categorizePubkeys(followedPubkeys, inactiveMonths);
-      // console.log("Active pubkeys:", activePubkeys);
-      // console.log("Inactive pubkeys:", inactivePubkeys);
+      console.log("Active pubkeys:", activePubkeys);
+      console.log("Inactive pubkeys:", inactivePubkeys);
 
       displayPubkeyInformation(
         followedPubkeys.length,

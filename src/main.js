@@ -43,7 +43,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
 
     const { eventContent, followedPubkeys, totalPubkeys } =
       await fetchKind3Events(activeUser.pubkey);
-    // console.log("kind3 event content:", eventContent);
+    // console.log("kind3 returned to main:", followedPubkeys);
 
     const totalPubkeysElement = document.getElementById("totalPubkeys");
     if (totalPubkeysElement) {
