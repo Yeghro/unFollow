@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nostr Inactive Users Checker</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <h1>Nostr Inactive Users Checker</h1>
+    <p>
+      ! CAUTION ! Before using this app, please consider backing up your follow
+      list by adding wss://hist.nostr.land to your relay list, then follow
+      someone or unfollow someone to update your relay list.... Just in case,
+      because you never know
+    </p>
+    <div class="input-container">
+      <label for="inactiveMonths">Inactive Months:</label>
+      <input
+        type="number"
+        id="inactiveMonths"
+        name="inactiveMonths"
+        min="1"
+        max="12"
+        value="8"
+      />
+    </div>
+    <p>
+      Login below to begin checking your nostr follow list for inactive users.
+    </p>
+    <button id="loginButton">Log in with Nostr</button>
+    <div id="spinnerContainer" style="display: none;">
+      <div class="spinner"></div>
+    </div>
+    <p>or enter an npub to check their follow list for inactive users</p>
+    <div class="input-container">
+      <label for="manualPubkey">Enter Pubkey/Npub:</label>
+      <input
+        style="width: 300px"
+        type="text"
+        id="manualPubkey"
+        name="manualPubkey"
+      />
+    </div>
+    <button id="checkManualPubkeyButton">Check Manual Pubkey</button>
+    <div id="loadingSpinner" class="spinner" style="display: none;"></div>
+
+    <!-- User Profile Card -->
+    <h2>Profile Information</h2>
+    <div id="userProfileCard" class="profile-card">
+      <img id="userPicture" alt="User Picture" />
+      <p id="userName"></p>
+      <p id="userBio"></p>
+      <button id="readMoreButton">Read more</button>
+      <p id="nip05"></p>
+      <p id="webSiteUrl"></p>
+    </div>
+    <p id="publicKey">Npub:</p>
+    <p id="hexKey">Hex Key:</p>
+
+    <h2>Pubkey Information</h2>
+    <p id="totalPubkeys">Total Pubkeys Found:</p>
+
+    <div class="tab-container">
+      <button class="tablink" data-tab="Pubkeys">Pubkeys</button>
+      <button class="tablink" data-tab="Npubs">Npubs</button>
+    </div>
+    
+    <div id="Pubkeys" class="tabcontent">
+      <h4>Non-Active Pubkeys</h4>
+      <ul id="nonActivePubkeys"></ul>
+    </div>
+    
+    <div id="Npubs" class="tabcontent" style="display: none">
+      <h4>Non-Active Npubs</h4>
+      <ul id="nonActiveNpubs"></ul>
+    </div>
+    
+    <div id="progressContainer">
+      <div id="progressBar">0%</div>
+    </div>
+
+    <button id="createKind3EventButton" style="display: none">
+      Click to unFollow inactive users
+    </button>
+
+    <!-- Include the main JavaScript file -->
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

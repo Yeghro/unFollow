@@ -1,136 +1,150 @@
-import NDK, { NDKNip07Signer, NDKEvent } from "@nostr-dev-kit/ndk";
+import { NDKNip07Signer } from "@nostr-dev-kit/ndk";
 
-let ndkUser;
-export let ndk;
-export let nip07signer;
+// Initialize relay URLs
 export let relayUrls = [
   "wss://purplepag.es",
   "wss://relay.nostr.band",
   "wss://relay.primal.net",
   "wss://relay.damus.io",
-  "wss://nostr.wine",
   "wss://relay.snort.social",
-  "wss://eden.nostr.land",
   "wss://nostr.bitcoiner.social",
   "wss://nostrpub.yeghro.site",
 ];
 
-export async function connectToNDK() {
-  if (!ndk || !ndk.isConnected()) {
-    try {
-      nip07signer = new NDKNip07Signer();
-      ndk = new NDK({
-        signer: nip07signer,
-        explicitRelayUrls: relayUrls,
-        autoConnectUserRelays: false, // This can be set to false if you don't want to auto-connect user relays
-      });
-      await ndk.connect();
-      console.log("NDK connected");
-    } catch (error) {
-      console.error("Failed to connect to NDK:", error);
-      // Add logic to handle reconnection or notify the user
+let relays = {};
+
+let nip07Signer = null;
+let activeUser = null;
+
+export async function connectToRelays(urls = relayUrls) {
+  try {
+    // Check if the window.nostr object exists (indicating NIP-07 extension presence)
+    if (typeof window !== "undefined" && window.nostr) {
+      nip07Signer = new NDKNip07Signer(5000);
+      activeUser = await nip07Signer.blockUntilReady();
+      console.log("Signer is ready and user is:", activeUser);
+    } else {
+      console.log("NIP-07 extension not detected.");
+      nip07Signer = null;
+      activeUser = null;
     }
-  } else {
-    console.log("Connected to Relays");
-  }
-}
-
-export async function loginWithNostr() {
-  try {
-    await connectToNDK();
-    const userPublicKey = await nip07signer.user();
-    console.log("User public key obtained:", userPublicKey);
-
-    // Use ndk.getUser to fetch user data with the userPublicKey
-    ndkUser = await ndk.getUser({ npub: userPublicKey.npub });
-    console.log("Fetched NDK user data:", ndkUser);
-
-    ndk.activeUser = ndkUser;
-    console.log("Active user set in NDK:", ndk.activeUser);
-
-    // Fetch profile information to get the user's relays and other profile data
-    await ndkUser.fetchProfile();
-    console.log("User profile data after fetching:", ndkUser);
-
-    return ndkUser.profile;
   } catch (error) {
-    console.error("Error during login:", error);
-    // Handle the error appropriately, such as displaying a user-friendly message
-    alert(
-      "Failed to login with Nostr. Please ensure that the NIP-07 signer is available and properly initialized."
-    );
-  }
-}
-
-export function getPublicKey() {
-  if (!ndkUser) {
-    throw new Error("NDK user not initialized. Please login first.");
-  }
-  return ndkUser.npub;
-}
-
-export function getHexKey() {
-  if (!ndkUser) {
-    throw new Error("NDK user not initialized. Please login first.");
-  }
-  return ndkUser.pubkey;
-}
-
-export async function fetchEvents(filter) {
-  console.log("Fetching events with filter:", filter);
-
-  const opts = {
-    closeOnEose: true, // Close connection after End of Stream event
-    // cacheUsage: NDKSubscriptionCacheUsage.PARALLEL, // Use both cache and relay
-  };
-
-  try {
-    const events = await ndk.fetchEvents(filter, opts);
-    console.log("Fetched events:", events);
-    return events;
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    return new Set(); // Return an empty set on error
-  }
-}
-
-export async function fetchEvent(filter, timeoutMs = 10000) {
-  console.log("Fetching single event with filter:", filter);
-  const event = await ndk.fetchEvent(filter, {
-    relays: ndk.explicitRelayUrls,
-    closeOnEose: true,
-    timeoutMs,
-  });
-  console.log("Fetched event:", event);
-  return event;
-}
-
-export async function createKind3Event(hexKey, activePubkeys) {
-  // Ensure activePubkeys is not empty before creating the event
-  if (!activePubkeys || activePubkeys.length === 0) {
-    console.error("No active pubkeys provided. Aborting event creation.");
-    return;
+    console.warn("Error while initializing NDKNip07Signer:", error);
+    nip07Signer = null;
+    activeUser = null;
   }
 
-  // Validate hexKey
-  if (!hexKey) {
-    console.error("Invalid hexKey. Aborting event creation.");
-    return;
-  }
+  // Proceed with connecting to relays regardless of signer availability
+  const connectionPromises = urls.map(async (url) => {
+    if (relays[url]) {
+      console.log(`Already connected to relay: ${url}`);
+      return;
+    }
 
-  const kind3Event = new NDKEvent(ndk, {
-    kind: 3,
-    tags: activePubkeys.map((pubkey) => ["p", pubkey]),
-    content: "",
-    created_at: Math.floor(Date.now() / 1000),
-    pubkey: hexKey, // Ensure the hexKey is used as the author's pubkey
+    const ws = new WebSocket(url);
+
+    return new Promise((resolve) => {
+      ws.onopen = () => {
+        console.log(`Connected to relay: ${url}`);
+        relays[url] = ws;
+        resolve();
+      };
+
+      ws.onmessage = (event) => {
+        // console.log(`Message from ${url}:`, event.data);
+      };
+
+      ws.onclose = () => {
+        console.log(`Disconnected from relay: ${url}`);
+        delete relays[url];
+      };
+
+      ws.onerror = (error) => {
+        console.error(`Error from relay ${url}:`, error);
+        resolve();
+      };
+    });
   });
 
-  try {
-    await kind3Event.sign(nip07signer); // Use nip07signer instead of ndk.signer
-    await kind3Event.publish();
-    console.log("Kind 3 event created and published:", kind3Event);
-  } catch (error) {
-    console.error("Failed to create or publish Kind 3 event:", error);
+  await Promise.all(connectionPromises);
+  console.log("Established Relay Instance:", relays);
+}
+
+async function connectUsersRelays(targetPubkey) {
+  // Ensure we're connected to the default relays
+  if (Object.keys(relays).length === 0) {
+    await connectToRelays();
+  }
+
+  // Get user-specific relays
+  const userRelays = await getUserRelays(targetPubkey);
+  const allRelayUrls = [...new Set([...relayUrls, ...userRelays])];
+
+  // Connect to any additional relays not already connected
+  await connectToAdditionalRelays(allRelayUrls);
+}
+
+async function connectToAdditionalRelays(allRelayUrls) {
+  const newUrls = allRelayUrls.filter((url) => !relays[url]);
+  console.log("new relays to be connected to:", newUrls);
+
+  // Use the existing connectToRelays function for new URLs
+  if (newUrls.length > 0) {
+    relayUrls = [...new Set([...relayUrls, ...newUrls])];
+    console.log("updated relayUrls:", relayUrls);
+    await connectToRelays(newUrls);
   }
 }
+
+async function getUserRelays(pubkey) {
+  const userRelays = new Set();
+  const subscriptionId = `user-relays-${Math.random()
+    .toString(36)
+    .substr(2, 9)}`;
+
+  const request = JSON.stringify([
+    "REQ",
+    subscriptionId,
+    {
+      authors: [pubkey],
+      kinds: [10002], // NIP-65 event kind
+      limit: 1,
+    },
+  ]);
+
+  const relayPromises = Object.values(relays).map(
+    (ws) =>
+      new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log(`Query for user relays timed out.`);
+          resolve();
+        }, 10000);
+
+        const onMessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message[0] === "EVENT" && message[2].kind === 10002) {
+            console.log("kind 10002 received:", message);
+            message[2].tags.forEach((tag) => {
+              if (tag[0] === "r") {
+                userRelays.add(tag[1]);
+              }
+            });
+          }
+          if (message[0] === "EOSE") {
+            clearTimeout(timeout);
+            ws.removeEventListener("message", onMessage);
+            resolve();
+          }
+        };
+
+        ws.addEventListener("message", onMessage);
+        ws.send(request);
+      })
+  );
+
+  await Promise.all(relayPromises);
+
+  return Array.from(userRelays);
+}
+
+export { nip07Signer, activeUser, relays, connectUsersRelays };
