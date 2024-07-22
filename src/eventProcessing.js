@@ -3,7 +3,8 @@ import { relays } from "./nostrService.js";
 export async function categorizePubkeys(
   followedPubkeys,
   inactiveMonths = 8,
-  maxRetries = 10
+  maxRetries = 12,
+  batchSize = 500
 ) {
   const currentTime = Math.floor(Date.now() / 1000);
   const inactiveThreshold = currentTime - inactiveMonths * 30 * 24 * 60 * 60;
@@ -11,22 +12,42 @@ export async function categorizePubkeys(
   const activePubkeys = new Set();
   const inactivePubkeys = new Set(followedPubkeys);
   const followedKind0 = new Map();
+  console.log("Followed pubkeys sent to categorize:", followedPubkeys);
 
-  for (let i = 0; i < maxRetries; i++) {
-    await processPubkeys(
-      Array.from(inactivePubkeys),
-      activePubkeys,
-      inactivePubkeys,
-      inactiveThreshold,
-      followedKind0
-    );
+  let remainingPubkeys = Array.from(inactivePubkeys);
+  let retryCount = 0;
 
-    updateProgress(i + 1, maxRetries);
+  while (remainingPubkeys.length > 0 && retryCount < maxRetries) {
+    const batches = createBatches(remainingPubkeys, batchSize);
+    remainingPubkeys = [];
 
-    if (inactivePubkeys.size === 0) {
-      updateProgress(maxRetries, maxRetries);
-      break;
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      const batchSet = new Set(batch);
+
+      await processPubkeys(
+        Array.from(batchSet),
+        activePubkeys,
+        inactivePubkeys,
+        inactiveThreshold,
+        followedKind0
+      );
+
+      // Remove processed pubkeys from the batch set
+      for (const pubkey of batchSet) {
+        if (!activePubkeys.has(pubkey)) {
+          remainingPubkeys.push(pubkey);
+        }
+      }
     }
+
+    retryCount++;
+    updateProgress(retryCount, maxRetries);
+  }
+
+  // After max retries, consider remaining pubkeys as inactive
+  for (const pubkey of remainingPubkeys) {
+    inactivePubkeys.add(pubkey);
   }
 
   return {
@@ -36,6 +57,14 @@ export async function categorizePubkeys(
   };
 }
 
+function createBatches(array, size) {
+  const batches = [];
+  for (let i = 0; i < array.length; i += size) {
+    batches.push(array.slice(i, i + size));
+  }
+  return batches;
+}
+
 async function processPubkeys(
   pubkeys,
   activePubkeys,
@@ -43,8 +72,14 @@ async function processPubkeys(
   inactiveThreshold,
   followedKind0
 ) {
+  const relayListeners = new Map();
   const subscriptionId = `sub-${Math.random().toString(36).substr(2, 9)}`;
   let stopFetching = false;
+
+  const watchdogTimer = setTimeout(() => {
+    stopFetching = true;
+    cleanupRelays();
+  }, 20000);
 
   const request = JSON.stringify([
     "REQ",
@@ -55,77 +90,80 @@ async function processPubkeys(
     },
   ]);
 
-  const relayPromises = Object.values(relays).map(async (relay) => {
-    return new Promise((resolve) => {
-      const onMessageHandler = createMessageHandler(
-        relay,
-        subscriptionId,
-        activePubkeys,
-        inactivePubkeys,
-        inactiveThreshold,
-        followedKind0,
-        () => {
-          stopFetching = true;
-          resolve();
-        }
-      );
-
-      relay.addEventListener("message", onMessageHandler);
+  for (const relay of Object.values(relays)) {
+    try {
       relay.send(request);
 
-      setTimeout(() => {
+      const onMessageHandler = async (event) => {
+        if (stopFetching) return;
+
+        try {
+          const message = JSON.parse(event.data);
+
+          if (message[0] === "EVENT") {
+            const eventPubkey = message[2].pubkey;
+            const eventCreatedAt = message[2].created_at;
+
+            if (message[2].kind === 0) {
+              followedKind0.set(eventPubkey, message[2]);
+            }
+
+            if (message[2].kind === 1 && eventCreatedAt > inactiveThreshold) {
+              activePubkeys.add(eventPubkey);
+              inactivePubkeys.delete(eventPubkey);
+            }
+          }
+
+          if (message[0] === "EOSE" && message[1] === subscriptionId) {
+            relay.send(JSON.stringify(["CLOSE", subscriptionId]));
+            relay.removeEventListener("message", onMessageHandler);
+          }
+
+          if (
+            message[0] === "NOTICE" &&
+            message[1].includes("error: too fast")
+          ) {
+            await delay(2000);
+          }
+        } catch (error) {
+          console.error("Error processing message:", error);
+        }
+      };
+
+      relay.addEventListener("message", onMessageHandler);
+
+      relay.onerror = (error) => {
+        console.error("Relay error:", error);
         relay.removeEventListener("message", onMessageHandler);
-        relay.send(JSON.stringify(["CLOSE", subscriptionId]));
-        resolve();
-      }, 20000);
-    });
-  });
+      };
 
-  await Promise.all(relayPromises);
-}
-
-function createMessageHandler(
-  relay,
-  subscriptionId,
-  activePubkeys,
-  inactivePubkeys,
-  inactiveThreshold,
-  followedKind0,
-  onComplete
-) {
-  return async (event) => {
-    try {
-      const message = JSON.parse(event.data);
-
-      if (message[0] === "EVENT") {
-        const eventPubkey = message[2].pubkey;
-        const eventCreatedAt = message[2].created_at;
-
-        if (message[2].kind === 0) {
-          followedKind0.set(eventPubkey, message[2]);
-        }
-
-        if (message[2].kind === 1 && eventCreatedAt > inactiveThreshold) {
-          activePubkeys.add(eventPubkey);
-          inactivePubkeys.delete(eventPubkey);
-        }
+      if (!relayListeners.has(relay)) {
+        relayListeners.set(relay, []);
       }
-
-      if (message[0] === "EOSE" && message[1] === subscriptionId) {
-        onComplete();
-      }
-
-      if (message[0] === "NOTICE" && message[1].includes("error: too fast")) {
-        await delay(2000);
-      }
+      relayListeners.get(relay).push(onMessageHandler);
     } catch (error) {
-      console.error("Error processing message:", error);
+      console.error("Error setting up relay:", error);
     }
-  };
+  }
+
+  await delay(500);
+
+  clearTimeout(watchdogTimer);
+  cleanupRelays();
+
+  function cleanupRelays() {
+    relayListeners.forEach((listeners, relay) => {
+      listeners.forEach((listener) =>
+        relay.removeEventListener("message", listener)
+      );
+      relay.send(JSON.stringify(["CLOSE", subscriptionId]));
+    });
+    relayListeners.clear();
+  }
 }
 
-function updateProgress(completed, total) {
-  const progress = Math.round((completed / total) * 100);
+function updateProgress(completedRetries, maxRetries) {
+  const progress = Math.round((completedRetries / maxRetries) * 100);
   if (typeof window !== "undefined" && window.document) {
     const progressBar = document.getElementById("progressBar");
     if (progressBar) {

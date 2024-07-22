@@ -20,32 +20,21 @@ export async function handleManualPubkeyCheck() {
   if (manualPubkey) {
     document.getElementById("loadingSpinner").style.display = "block";
     try {
-      // console.log("manual pubkey entered by user:", manualPubkey);
-      // Check if the input is an npub and convert to hex pubkey if necessary
       if (manualPubkey.startsWith("npub")) {
         const decoded = nip19.decode(manualPubkey);
         manualPubkey = decoded.data;
       } else if (!/^[0-9a-fA-F]{64}$/.test(manualPubkey)) {
         throw new Error("Invalid pubkey or npub format");
       }
-      // console.log("manual pubkey decoded:", manualPubkey);
 
-      // Connect to relays
-      await connectToRelays();
+      // Connect to user relays and fetch kind 0 events simultaneously
+      const kind0Events = await connectUsersRelays(manualPubkey);
 
-      await connectUsersRelays(manualPubkey);
-
-      // Ensure relays are connected before proceeding
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Fetch kind 0 events to get metadata about the user
-      const kind0Events = await fetchKind0Events([manualPubkey]);
       if (kind0Events.length === 0) {
         throw new Error("No metadata found for the provided pubkey");
       }
       const profile = kind0Events[0];
       updateUserProfileCard(profile);
-      // console.log("Returned profile (kind0)", profile);
 
       document.getElementById(
         "publicKey"
@@ -65,8 +54,6 @@ export async function handleManualPubkeyCheck() {
         totalPubkeysElement.textContent = `Total Pubkeys Found: ${totalPubkeys}`;
       }
 
-      // console.log("kind3 returned to input:", followedPubkeys);
-
       // Categorize the pubkeys
       const { activePubkeys, inactivePubkeys, followedKind0 } =
         await categorizePubkeys(followedPubkeys, inactiveMonths);
@@ -76,7 +63,7 @@ export async function handleManualPubkeyCheck() {
       displayPubkeyInformation(
         followedPubkeys.length,
         inactivePubkeys,
-        inactivePubkeys.map(nip19.npubEncode), // Assuming you want to display npubs
+        inactivePubkeys.map(nip19.npubEncode),
         activePubkeys,
         followedKind0
       );
@@ -88,7 +75,7 @@ export async function handleManualPubkeyCheck() {
     } catch (error) {
       document.getElementById("loadingSpinner").style.display = "none";
       alert("An error occurred while processing the manual pubkey.");
-      throw error;
+      console.error(error);
     }
   } else {
     alert("Please enter a valid pubkey/npub.");
