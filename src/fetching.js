@@ -1,21 +1,31 @@
 import { relays } from "./nostrService.js";
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function delay(ms) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, ms);
+  });
+}
 
-const createSubscriptionId = () => Math.random().toString(36).substr(2, 9);
+function createSubscriptionId() {
+  return Math.random().toString(36).substr(2, 9);
+}
 
-const isValidHexKey = (str) => /^[0-9a-fA-F]{64}$/.test(str);
+function isValidHexKey(str) {
+  return /^[0-9a-fA-F]{64}$/.test(str);
+}
 
-const createNostrRequest = (subscriptionId, authors, kinds, limit = 1) =>
-  JSON.stringify(["REQ", subscriptionId, { authors, kinds, limit }]);
+function createNostrRequest(subscriptionId, authors, kinds, limit = 1) {
+  return JSON.stringify(["REQ", subscriptionId, { authors, kinds, limit }]);
+}
 
-const createCloseRequest = (subscriptionId) =>
-  JSON.stringify(["CLOSE", subscriptionId]);
+function createCloseRequest(subscriptionId) {
+  return JSON.stringify(["CLOSE", subscriptionId]);
+}
 
-const fetchEventsFromRelay = (relay, request, subscriptionId, eventKind) =>
-  new Promise((resolve) => {
+function fetchEventsFromRelay(relay, request, subscriptionId, eventKind) {
+  return new Promise(function (resolve) {
     const events = [];
-    const onMessage = (event) => {
+    function onMessage(event) {
       const message = JSON.parse(event.data);
       if (
         message[0] === "EVENT" &&
@@ -29,11 +39,11 @@ const fetchEventsFromRelay = (relay, request, subscriptionId, eventKind) =>
         relay.removeEventListener("message", onMessage);
         resolve(events);
       }
-    };
+    }
     relay.addEventListener("message", onMessage);
     relay.send(request);
   });
-
+}
 export async function fetchKind0Events(pubkeys) {
   const subscriptionId = createSubscriptionId();
   const request = createNostrRequest(subscriptionId, pubkeys, [0]);
@@ -53,37 +63,45 @@ export async function fetchKind0Events(pubkeys) {
 
   return allEvents.flat();
 }
-
 export async function fetchKind3Events(pubkey) {
   const subscriptionId = createSubscriptionId();
   const request = createNostrRequest(subscriptionId, [pubkey], [3]);
-
   const allEvents = await Promise.all(
-    Object.values(relays).map((relay) =>
-      fetchEventsFromRelay(relay, request, subscriptionId, 3)
-    )
+    Object.values(relays).map(function (relay) {
+      return fetchEventsFromRelay(relay, request, subscriptionId, 3);
+    })
   );
-
   const events = allEvents.flat();
-  const latestEvent = events.reduce(
-    (latest, event) =>
-      !latest || event.created_at > latest.created_at ? event : latest,
-    null
-  );
-
+  const latestEvent = events.reduce(function (latest, event) {
+    if (!latest || event.created_at > latest.created_at) {
+      return event;
+    }
+    return latest;
+  }, null);
   if (latestEvent) {
-    const followedPubkeys = new Set(
-      latestEvent.tags
-        .filter((tag) => tag[0] === "p" && tag[1] && isValidHexKey(tag[1]))
-        .map((tag) => tag[1])
-    );
-
+    const followedPubkeys = new Set();
+    const followedTopics = new Set();
+    latestEvent.tags.forEach(function (tag) {
+      if (tag[0] === "p" && tag[1] && isValidHexKey(tag[1])) {
+        followedPubkeys.add(tag[1]);
+      } else if (tag[0] === "t" && tag[1]) {
+        followedTopics.add(tag[1]);
+      }
+    });
+    console.log("Followed Topics for pubkey:", followedTopics);
     return {
       followedPubkeys: Array.from(followedPubkeys),
+      followedTopics: Array.from(followedTopics),
       totalPubkeys: followedPubkeys.size,
+      totalTopics: followedTopics.size,
       eventContent: latestEvent.content,
     };
   }
-
-  return { followedPubkeys: [], totalPubkeys: 0, eventContent: null };
+  return {
+    followedPubkeys: [],
+    followedTopics: [],
+    totalPubkeys: 0,
+    totalTopics: 0,
+    eventContent: null,
+  };
 }

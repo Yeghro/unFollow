@@ -47,8 +47,13 @@ document.getElementById("loginButton").addEventListener("click", async () => {
 
     const inactiveMonths = getInactiveMonths();
 
-    const { eventContent, followedPubkeys, totalPubkeys } =
-      await fetchKind3Events(activeUser.pubkey);
+    const {
+      followedPubkeys,
+      followedTopics,
+      totalPubkeys,
+      totalTopics,
+      eventContent,
+    } = await fetchKind3Events(activeUser.pubkey);
     // console.log("kind3 returned to main:", followedPubkeys);
 
     const totalPubkeysElement = document.getElementById("totalPubkeys");
@@ -75,7 +80,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     createButton.addEventListener("click", async () => {
       if (confirm("Are you sure you want to create a new kind 3 event?")) {
         try {
-          await createKind3Event(activePubkeys, eventContent);
+          await createKind3Event(activePubkeys, eventContent, followedTopics);
           alert("New kind 3 event created successfully.");
         } catch (error) {
           alert("Failed to create kind 3 event.");

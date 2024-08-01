@@ -7,7 +7,6 @@ const RELAY_URLS = [
   "wss://relay.primal.net",
   "wss://relay.damus.io",
   "wss://relay.snort.social",
-  "wss://nostr.bitcoiner.social",
   "wss://nostrpub.yeghro.site",
 ];
 

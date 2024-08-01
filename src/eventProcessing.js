@@ -4,7 +4,7 @@ export async function categorizePubkeys(
   followedPubkeys,
   inactiveMonths = 8,
   maxRetries = 12,
-  batchSize = 500
+  batchSize = 250
 ) {
   const currentTime = Math.floor(Date.now() / 1000);
   const inactiveThreshold = currentTime - inactiveMonths * 30 * 24 * 60 * 60;
@@ -64,9 +64,8 @@ function createBatches(array, size) {
   }
   return batches;
 }
-
 async function processPubkeys(
-  pubkeys,
+  followedPubkeys,
   activePubkeys,
   inactivePubkeys,
   inactiveThreshold,
@@ -85,7 +84,7 @@ async function processPubkeys(
     "REQ",
     subscriptionId,
     {
-      authors: pubkeys,
+      authors: followedPubkeys,
       kinds: [0, 1],
     },
   ]);
@@ -146,7 +145,7 @@ async function processPubkeys(
     }
   }
 
-  await delay(500);
+  await delay(2000);
 
   clearTimeout(watchdogTimer);
   cleanupRelays();

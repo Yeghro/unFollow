@@ -1,15 +1,28 @@
 body {
-  font-family: Arial, sans-serif;
-  background-color: #000;
+  font-family: 'Roboto', Arial, sans-serif;
+  background-color: #121212;
   margin: 0;
-  padding: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  color: #e0e0e0;
 }
 
-h1,
-h2,
-h4 {
-  color: #a67c2e;
+.container {
+  max-width: 800px;
+  width: 100%;
+  background-color: #1e1e1e;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2, h4 {
+  color: #ffd700;
   text-align: center;
+  margin-bottom: 20px;
 }
 
 ul {
@@ -19,55 +32,59 @@ ul {
 }
 
 ul li {
-  padding: 10px;
+  padding: 12px;
   background-color: #2e002e;
-  margin-bottom: 5px;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #c1b194;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  font-size: 16px;
+  color: #e0e0e0;
   text-align: center;
+  transition: background-color 0.3s ease;
 }
 
 ul li:hover {
-  background-color: #805300;
+  background-color: #4a0082;
 }
 
-p,
-label {
-  color: #c1b194;
-  padding: 0 10px;
+p, label {
+  color: #e0e0e0;
   text-align: center;
+  margin-bottom: 15px;
 }
 
 button {
-  background: linear-gradient(to right, orange, purple);
+  background: linear-gradient(45deg, #ff8c00, #8a2be2);
   color: white;
-  padding: 10px 20px;
+  padding: 12px 24px;
   border: none;
-  border-radius: 5px;
+  border-radius: 25px;
   cursor: pointer;
   display: block;
-  margin: 10px auto;
+  margin: 20px auto;
   font-size: 16px;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 button:hover {
-  background: linear-gradient(to right, purple, orange);
+  background: linear-gradient(45deg, #8a2be2, #ff8c00);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 #progressContainer {
   width: 100%;
-  background-color: #343434;
-  border-radius: 4px;
+  background-color: #2e2e2e;
+  border-radius: 10px;
   overflow: hidden;
-  margin-top: 20px; /* Add some space above the progress bar if needed */
+  margin-top: 30px;
 }
 
 #progressBar {
   width: 0%;
   height: 20px;
-  background: linear-gradient(to right, orange, purple);
+  background: linear-gradient(45deg, #ff8c00, #8a2be2);
   text-align: center;
   line-height: 20px;
   color: white;
@@ -75,11 +92,11 @@ button:hover {
 }
 
 .spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-left-color: #000;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: #ffd700;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   animation: spin 1s linear infinite;
   display: none;
   margin: 20px auto;
@@ -97,73 +114,85 @@ button:hover {
 }
 
 .input-container input {
-  padding: 8px;
+  padding: 10px;
   font-size: 16px;
-  border-radius: 4px;
+  border-radius: 25px;
   border: none;
-  background-color: #1a1a1a;
+  background-color: #2e2e2e;
   color: white;
-  width: 60px;
+  width: 80px;
   text-align: center;
+  transition: all 0.3s ease;
 }
 
-/* Styles for the tab buttons */
+.input-container input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #ffd700;
+}
+
 .tab-container {
   display: flex;
   justify-content: center;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 .tablink {
   width: 150px;
-  padding: 10px;
+  padding: 12px;
   text-align: center;
   cursor: pointer;
-  background-color: #1a1a1a;
-  color: #c1b194;
+  background-color: #2e2e2e;
+  color: #e0e0e0;
   border: none;
-  border-radius: 5px;
-  margin: 0 5px;
-  transition: background-color 0.3s ease;
+  border-radius: 25px;
+  margin: 0 10px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .tablink:hover {
-  background-color: #ddd;
+  background-color: #4a0082;
 }
 
 .tablink.active {
-  background-color: #ccc;
+  background-color: #8a2be2;
+  color: white;
 }
 
 .tabcontent {
   display: none;
   padding: 20px;
+  background-color: #2e2e2e;
+  border-radius: 10px;
 }
 
-/* Styles for the user profile card */
 .profile-card {
   display: none;
   background-color: #2e002e;
-  color: #c1b194;
-  padding: 20px;
+  color: #e0e0e0;
+  padding: 30px;
   margin: 20px auto;
-  border-radius: 8px;
+  border-radius: 10px;
   text-align: center;
-  width: 300px;
+  width: 320px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .profile-card img {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
+  border: 4px solid #ffd700;
 }
 
 .profile-card #userBio {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  max-width: 250px;
+  max-width: 280px;
+  margin-bottom: 15px;
 }
 
 .profile-card #userBio.expanded {
@@ -172,30 +201,27 @@ button:hover {
 }
 
 .profile-card button {
-  background: linear-gradient(to right, orange, purple);
+  background: linear-gradient(45deg, #ff8c00, #8a2be2);
   color: white;
-  padding: 5px 10px;
+  padding: 8px 16px;
   border: none;
-  border-radius: 5px;
+  border-radius: 20px;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-card button:hover {
+  background: linear-gradient(45deg, #8a2be2, #ff8c00);
+  transform: translateY(-2px);
 }
 
 .profile-card a {
-  color: #a67c2e;
+  color: #ffd700;
   text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 .profile-card a:hover {
+  color: #ff8c00;
   text-decoration: underline;
-}
-
-.spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-left-color: orange;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  animation: spin 1s linear infinite;
-  display: none;
-  margin: 20px auto;
 }
