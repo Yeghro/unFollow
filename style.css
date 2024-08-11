@@ -225,3 +225,59 @@ button:hover {
   color: #ff8c00;
   text-decoration: underline;
 }
+
+
+/* 
+##############################
+#######Alby Qr code Div ######
+#############################
+*/
+
+#ln-pay-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  /* Removed background gradient from here */
+}
+
+#qr-code-container {
+  background-color: transparent;
+  padding: 20px;
+  border-radius: 10px;
+  margin: 20px 0;
+  display: none; /* Initially hidden, show when QR code is generated */
+}
+
+#qr-code-container img {
+  display: block;
+  background: linear-gradient(135deg, #ff9900, #8e44ad); /* Gradient applied directly to the image */
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.wallet-button {
+  background: linear-gradient(135deg, #ff9900, #8e44ad);
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 10px 0;
+  cursor: pointer;
+  border-radius: 25px;
+  transition: background-color 0.3s ease;
+}
+
+.wallet-button:hover {
+  background: linear-gradient(45deg, #8a2be2, #ff8c00);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#open-wallet {
+  display: none; /* Initially hidden, show when QR code is generated */
+}

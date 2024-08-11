@@ -96,7 +96,15 @@
       Click to unFollow inactive users
     </button>
 
+    <div id="ln-pay-container" class="qr-code-module">
+      <h3>If you found this tool useful feel free to leave use a tip.</h3>
+      <button id="generate-qr" class="wallet-button">Click To Tip</button>
+      <div id="qr-code-container" class="qr-code-container"></div>
+      <a href="#" id="open-wallet" class="wallet-button">Open to wallet</a>
+    </div>    
+
     <!-- Include the main JavaScript file -->
+    <script type="module" src="./src/lightningTips.js"></script>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
