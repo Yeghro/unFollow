@@ -129,7 +129,7 @@ const lnPay = new SecureLightningPay({
   paymentSystem: "lnbits", // or 'lnbits', depending on admin configuration
   albyAccountId: "yeghro", // Your Alby account ID (if using Getalby)
   lnbitsUrl: "https://lnbits.yeghro.site", // Your LNbits instance URL (if using LNbits)
-  lnbitsWalletId: "ca9819671ed44f10803e261368b0bb83", // Your LNbits wallet ID (if using LNbits)
+  lnbitsWalletId: "", // Your LNbits wallet ID (if using LNbits)
   amount: 1000, // desired tip amount in sats
   targetElement: document.getElementById("qr-code-container"),
   generateQrButton: document.getElementById("generate-qr"),
