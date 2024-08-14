@@ -1,6 +1,6 @@
 import qrcode from "qrcode-generator";
 
-class SecureLightningPay {
+export class SecureLightningPay {
   constructor(config) {
     this.validateConfig(config);
     this.paymentSystem = config.paymentSystem;
@@ -148,20 +148,21 @@ class SecureLightningPay {
   }
 }
 
-const lnbitsKey = import.meta.env.VITE_LNBITS_INVOICE_KEY;
 
 // Usage
-const lnPay = new SecureLightningPay({
-  paymentSystem: "lnbits", // or 'getalby', depending on admin configuration
-  albyAccountId: "yeghro", // Your Alby account ID (if using Getalby)
-  lnbitsUrl: "https://lnbits.yeghro.site", // Your LNbits instance URL (if using LNbits)
-  lnbitsWalletId: lnbitsKey, // Your LNbits wallet ID (if using LNbits)
-  amount: 1000, // desired tip amount in sats
-  targetElement: document.getElementById("qr-code-container"),
-  generateQrButton: document.getElementById("generate-qr"),
-  openWalletButton: document.getElementById("open-wallet"),
-});
+// const lnbitsKey = import.meta.env.VITE_LNBITS_INVOICE_KEY;
 
-document.getElementById("generate-qr").addEventListener("click", () => {
-  lnPay.generateQRCode();
-});
+// const lnPay = new SecureLightningPay({
+//   paymentSystem: "lnbits", // or 'getalby', depending on admin configuration
+//   albyAccountId: "yeghro", // Your Alby account ID (if using Getalby)
+//   lnbitsUrl: "https://lnbits.yeghro.site", // Your LNbits instance URL (if using LNbits)
+//   lnbitsWalletId: lnbitsKey, // Your LNbits wallet ID (if using LNbits)
+//   amount: 1000, // desired tip amount in sats
+//   targetElement: document.getElementById("qr-code-container"),
+//   generateQrButton: document.getElementById("generate-qr"),
+//   openWalletButton: document.getElementById("open-wallet"),
+// });
+
+// document.getElementById("generate-qr").addEventListener("click", () => {
+//   lnPay.generateQRCode();
+// });

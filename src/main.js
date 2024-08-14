@@ -13,6 +13,7 @@ import { nip19 } from "nostr-tools";
 import { getInactiveMonths, handleManualPubkeyCheck } from "./input.js";
 import { categorizePubkeys } from "./eventProcessing.js";
 import { createKind3Event } from "./createkind3.js";
+import { SecureLightningPay } from "./lightningTips.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
   const loginButton = document.getElementById("loginButton");
@@ -128,4 +129,21 @@ document.querySelectorAll(".tablink").forEach((tablink) => {
   tablink.addEventListener("click", (event) =>
     openTab(event, tablink.getAttribute("data-tab"))
   );
+});
+
+const lnbitsKey = import.meta.env.VITE_LNBITS_INVOICE_KEY;
+
+const lnPay = new SecureLightningPay({
+  paymentSystem: "lnbits", // or 'getalby', depending on admin configuration
+  albyAccountId: "yeghro", // Your Alby account ID (if using Getalby)
+  lnbitsUrl: "https://lnbits.yeghro.site", // Your LNbits instance URL (if using LNbits)
+  lnbitsWalletId: lnbitsKey, // Your LNbits wallet ID (if using LNbits)
+  amount: 1000, // desired tip amount in sats
+  targetElement: document.getElementById("qr-code-container"),
+  generateQrButton: document.getElementById("generate-qr"),
+  openWalletButton: document.getElementById("open-wallet"),
+});
+
+document.getElementById("generate-qr").addEventListener("click", () => {
+  lnPay.generateQRCode();
 });
