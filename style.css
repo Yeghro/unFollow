@@ -1,26 +1,119 @@
+:root {
+  --primary-color: orange;
+  --secondary-color: #8a2be2;
+  --background-color: #121212;
+  --text-color: #e0e0e0;
+  --container-bg: #1e1e1e;
+  --gradient-start: #ff8c00;
+  --gradient-end: #8a2be2;
+}
+
 body {
   font-family: 'Roboto', Arial, sans-serif;
-  background-color: #121212;
+  background-color: var(--background-color);
   margin: 0;
   padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
-  color: #e0e0e0;
+  color: var(--text-color);
 }
 
-.container {
-  max-width: 800px;
-  width: 100%;
-  background-color: #1e1e1e;
-  padding: 30px;
+/* Combine common styles for container-like elements */
+.container, header, .header_container, .home_nav_container, .yeghro_logo_container {
+  background-color: var(--container-bg);
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.body-container {
+  max-width: 800px;
+  width: 100%;
+  padding: 30px;
+  margin-top: 100px;
+  margin-bottom: 100px;
+  border: 2px solid var(--primary-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+}
+
+header, .header_container, .home_nav_container {
+  display: flex;
+  width: 100%;
+  height: 100px; 
+  margin-bottom: 30px;
+}
+
+.header_container {
+  justify-content: center; /* Change from space-between to center */
+  align-items: center;
+  padding: 10px;
+  position: relative;
+}
+
+.yeghro_logo_container {
+  position: static; /* Change from absolute to static */
+  left: auto; /* Remove left positioning */
+  top: auto; /* Remove top positioning */
+  transform: none; /* Remove transform */
+}
+
+.yeghro_logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 0 10px var(--primary-color);
+  transition: all 0.3s ease;
+  background-color: var(--container-bg);
+  padding: 5px;
+}
+
+.yeghro_logo:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 15px var(--primary-color);
+  border: 2px solid var(--gradient-start);
+  background-color: var(--gradient-start);
+  color: var(--text-color);
+  
+}
+
+.home_nav {
+  display: none; /* Hide the home navigation */
+}
+
+.nav-button {
+  background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
+  color: white !important;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.nav-button:hover {
+  background: linear-gradient(45deg, var(--gradient-end), var(--gradient-start));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
 h1, h2, h4 {
-  color: #ffd700;
+  color: var(--primary-color);
   text-align: center;
   margin-bottom: 20px;
 }
@@ -29,48 +122,79 @@ ul {
   list-style-type: none;
   padding: 0;
   margin: 0;
+  width: 100%;
+  max-width: 600px;
+  
 }
 
 ul li {
-  padding: 12px;
-  background-color: #2e002e;
-  margin-bottom: 8px;
-  border-radius: 6px;
+  padding: 15px 20px;
+  background: linear-gradient(45deg, #3a0057, #4a0082);
+  margin-bottom: 12px;
+  border-radius: 10px;
   font-size: 16px;
-  color: #e0e0e0;
-  text-align: center;
-  transition: background-color 0.3s ease;
+  color: var(--text-color);
+  text-align: left;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  border-left: 5px solid var(--primary-color);
 }
 
 ul li:hover {
-  background-color: #4a0082;
+  background: linear-gradient(45deg, #4a0082, #3a0057);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+ul li::before {
+  content: '•';
+  color: var(--primary-color);
+  font-weight: bold;
+  display: inline-block;
+  width: 1em;
+  margin-left: -1em;
 }
 
 p, label {
-  color: #e0e0e0;
+  color: var(--text-color);
   text-align: center;
   margin-bottom: 15px;
 }
 
-button {
-  background: linear-gradient(45deg, #ff8c00, #8a2be2);
+/* Combined button styles */
+button, .tablink, .wallet-button {
+  background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
   color: white;
   padding: 12px 24px;
   border: none;
   border-radius: 25px;
   cursor: pointer;
-  display: block;
-  margin: 20px auto;
   font-size: 16px;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
-button:hover {
-  background: linear-gradient(45deg, #8a2be2, #ff8c00);
+button:hover, .tablink:hover, .wallet-button:hover {
+  background: linear-gradient(45deg, var(--gradient-end), var(--gradient-start));
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tablink {
+  width: 150px;
+  background-color: #2e2e2e;
+  color: var(--text-color);
+  margin: 0 10px;
+}
+
+.tablink:hover {
+  background-color: #4a0082;
+}
+
+.tablink.active {
+  background-color: var(--secondary-color);
+  color: white;
 }
 
 #progressContainer {
@@ -78,13 +202,15 @@ button:hover {
   background-color: #2e2e2e;
   border-radius: 10px;
   overflow: hidden;
-  margin-top: 30px;
+  margin: 30px;
+  padding: 5px;
+
 }
 
 #progressBar {
   width: 0%;
   height: 20px;
-  background: linear-gradient(45deg, #ff8c00, #8a2be2);
+  background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
   text-align: center;
   line-height: 20px;
   color: white;
@@ -93,7 +219,7 @@ button:hover {
 
 .spinner {
   border: 4px solid rgba(255, 255, 255, 0.1);
-  border-left-color: #ffd700;
+  border-left-color: var(--primary-color);
   border-radius: 50%;
   width: 30px;
   height: 30px;
@@ -127,37 +253,13 @@ button:hover {
 
 .input-container input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #ffd700;
+  box-shadow: 0 0 0 2px var(--primary-color);
 }
 
 .tab-container {
   display: flex;
   justify-content: center;
   margin-bottom: 20px;
-}
-
-.tablink {
-  width: 150px;
-  padding: 12px;
-  text-align: center;
-  cursor: pointer;
-  background-color: #2e2e2e;
-  color: #e0e0e0;
-  border: none;
-  border-radius: 25px;
-  margin: 0 10px;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.tablink:hover {
-  background-color: #4a0082;
-}
-
-.tablink.active {
-  background-color: #8a2be2;
-  color: white;
 }
 
 .tabcontent {
@@ -170,7 +272,7 @@ button:hover {
 .profile-card {
   display: none;
   background-color: #2e002e;
-  color: #e0e0e0;
+  color: var(--text-color);
   padding: 30px;
   margin: 20px auto;
   border-radius: 10px;
@@ -184,7 +286,7 @@ button:hover {
   height: 120px;
   border-radius: 50%;
   margin-bottom: 15px;
-  border: 4px solid #ffd700;
+  border: 4px solid var(--primary-color);
 }
 
 .profile-card #userBio {
@@ -201,7 +303,7 @@ button:hover {
 }
 
 .profile-card button {
-  background: linear-gradient(45deg, #ff8c00, #8a2be2);
+  background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
   color: white;
   padding: 8px 16px;
   border: none;
@@ -211,18 +313,18 @@ button:hover {
 }
 
 .profile-card button:hover {
-  background: linear-gradient(45deg, #8a2be2, #ff8c00);
+  background: linear-gradient(45deg, var(--gradient-end), var(--gradient-start));
   transform: translateY(-2px);
 }
 
 .profile-card a {
-  color: #ffd700;
+  color: var(--primary-color);
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .profile-card a:hover {
-  color: #ff8c00;
+  color: var(--gradient-start);
   text-decoration: underline;
 }
 
@@ -257,6 +359,13 @@ button:hover {
   border-radius: 10px;
 }
 
+#ln-pay-container img {
+  display: block;
+  background: linear-gradient(135deg, #ff9900, #8e44ad); /* Gradient applied directly to the image */
+  padding: 10px;
+  border-radius: 10px;
+}
+
 .wallet-button {
   background: linear-gradient(135deg, #ff9900, #8e44ad);
   border: none;
@@ -273,11 +382,58 @@ button:hover {
 }
 
 .wallet-button:hover {
-  background: linear-gradient(45deg, #8a2be2, #ff8c00);
+  background: linear-gradient(45deg, var(--gradient-end), var(--gradient-start));
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 #open-wallet {
   display: none; /* Initially hidden, show when QR code is generated */
+  margin-top: 10px;
+  margin-bottom: 10px;
+  text-decoration: none;
+  color: var(--text-color);
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 25px;
+  transition: background-color 0.3s ease;
+  background-color: var(--primary-color);
+  padding: 10px 20px;
+  border: 2px solid white;
+  cursor: pointer;
 }
+
+#tip-amount-container {
+  margin-top: 20px; /* Adjust this value as needed */
+}
+
+#tip-amount-container button {
+  margin: 0 10px 10px 0; 
+  padding: 10px 15px; 
+}
+
+/* Style for all links */
+a {
+  color: var(--primary-color); 
+  text-decoration: none; 
+  transition: color 0.3s ease; 
+}
+
+/* Style for visited links */
+a:visited {
+  color: var(--secondary-color); 
+}
+
+/* Style for hover state */
+a:hover {
+  color: var(--gradient-start); /* Use one of your gradient colors */
+  text-decoration: underline; /* Add underline on hover */
+}
+
+/* Style for active state (when the link is being clicked) */
+a:active {
+  color: var(--gradient-end); /* Use another gradient color */
+}
+
+/* Add this to your existing CSS */
+

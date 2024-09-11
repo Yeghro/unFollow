@@ -131,19 +131,13 @@ document.querySelectorAll(".tablink").forEach((tablink) => {
   );
 });
 
-const lnbitsKey = import.meta.env.VITE_LNBITS_INVOICE_KEY;
-
+/*  Tip Configuration */
 const lnPay = new SecureLightningPay({
-  paymentSystem: "lnbits", // or 'getalby', depending on admin configuration
-  albyAccountId: "yeghro", // Your Alby account ID (if using Getalby)
-  lnbitsUrl: "https://lnbits.yeghro.site", // Your LNbits instance URL (if using LNbits)
-  lnbitsWalletId: lnbitsKey, // Your LNbits wallet ID (if using LNbits)
-  amount: 1000, // desired tip amount in sats
+  paymentSystem: "lnbits",
+  apiBaseUrl: '', // Empty string for same-origin requests
+  tipAmounts: [1000, 5000, 10000, 20000],
   targetElement: document.getElementById("qr-code-container"),
-  generateQrButton: document.getElementById("generate-qr"),
+  showTipOptionsButton: document.getElementById("show-tip-options"),
+  tipAmountContainer: document.getElementById("tip-amount-container"),
   openWalletButton: document.getElementById("open-wallet"),
-});
-
-document.getElementById("generate-qr").addEventListener("click", () => {
-  lnPay.generateQRCode();
 });

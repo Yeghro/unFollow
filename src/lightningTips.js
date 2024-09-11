@@ -2,39 +2,19 @@ import qrcode from "qrcode-generator";
 
 export class SecureLightningPay {
   constructor(config) {
-    this.validateConfig(config);
+    this.apiBaseUrl = config.apiBaseUrl || '';
+    this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
+    this.targetElement = config.targetElement;
+    this.showTipOptionsButton = config.showTipOptionsButton;
+    this.tipAmountContainer = config.tipAmountContainer;
+    this.openWalletButton = config.openWalletButton;
+
     this.paymentSystem = config.paymentSystem;
     this.albyAccountId = config.albyAccountId;
-    this.lnbitsUrl = config.lnbitsUrl;
-    this.lnbitsWalletId = config.lnbitsWalletId;
-    this.amount = this.validateAmount(config.amount);
-    this.targetElement = config.targetElement;
-    this.generateQrButton = config.generateQrButton;
-    this.openWalletButton = config.openWalletButton;
-    
-  }
+    this.amount = config.amount;
 
-  validateConfig(config) {
-    if (!config.paymentSystem || !['getalby', 'lnbits'].includes(config.paymentSystem)) {
-      throw new Error("Invalid or missing payment system");
-    }
-    if (config.paymentSystem === 'getalby' && !config.albyAccountId) {
-      throw new Error("Alby account ID is required for Getalby payment system");
-    }
-    if (config.paymentSystem === 'lnbits' && (!config.lnbitsUrl || !config.lnbitsWalletId)) {
-      throw new Error("LNbits URL and wallet ID are required for LNbits payment system");
-    }
-    if (!config.targetElement || !config.generateQrButton || !config.openWalletButton) {
-      throw new Error("Missing required DOM elements");
-    }
-  }
+    this.initializeUI();``
 
-  validateAmount(amount) {
-    const parsedAmount = parseInt(amount, 10);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      throw new Error("Invalid amount. Must be a positive integer.");
-    }
-    return parsedAmount;
   }
 
   async generateQRCode() {
@@ -56,15 +36,18 @@ export class SecureLightningPay {
         const lnurlParams = await this.fetchLNURLParams();
         return await this.requestInvoice(lnurlParams);
       case "lnbits":
-        return await this.createLNbitsInvoice();
+        return await this.createInvoice();
       default:
         throw new Error("Invalid payment system configured");
     }
   }
 
   async fetchLNURLParams() {
-    const url = new URL(`https://getalby.com/lnurlp/${encodeURIComponent(this.albyAccountId)}`);
-    return await this.secureFetch(url);
+    const response = await fetch(`/api/fetch-lnurl-params/${encodeURIComponent(this.albyAccountId)}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
   }
 
   async requestInvoice(params) {
@@ -78,41 +61,122 @@ export class SecureLightningPay {
       callbackUrl.searchParams.append("metadata", params.metadata);
     }
 
-    return await this.secureFetch(callbackUrl);
-  }
-
-  async createLNbitsInvoice() {
-    const url = new URL(`${this.lnbitsUrl}/api/v1/payments`);
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": this.lnbitsWalletId,
-      },
-      body: JSON.stringify({
-        out: false,
-        amount: this.amount,
-        memo: "LNbits Payment",
-      }),
+    const response = await fetch('/api/create-invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        paymentSystem: 'getalby', 
+        callbackUrl: callbackUrl.toString() 
+      })
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create LNbits invoice: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return { pr: data.payment_request };
-  }
-
-  async secureFetch(url) {
-    if (!url.protocol.startsWith('https')) {
-      throw new Error('Only HTTPS URLs are allowed');
-    }
-    const response = await fetch(url.toString());
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
+  }
+
+  async createInvoice() {
+    try {
+      const response = await fetch('/api/create-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          paymentSystem: 'lnbits', 
+          amount: this.amount 
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async checkPayment(paymentHash) {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentHash}`);
+      if (!response.ok) {
+        throw new Error('Failed to check payment status');
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error checking payment:', error);
+      throw error;
+    }
+  }
+
+  initializeUI() {
+    this.showTipOptionsButton.addEventListener('click', () => this.showTipOptions());
+    this.tipAmountContainer.innerHTML = this.tipAmounts.map(amount => 
+      `<button class="tip-amount-button" data-amount="${amount}">${amount} sats</button>`
+    ).join('');
+    this.tipAmountContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tip-amount-button')) {
+        this.handleTip(parseInt(e.target.dataset.amount));
+      }
+    });
+  }
+
+  showTipOptions() {
+    this.tipAmountContainer.style.display = 'block';
+  }
+
+  async handleTip(amount) {
+    this.amount = parseInt(amount, 10);
+    if (isNaN(this.amount) || this.amount <= 0) {
+      console.error('Invalid amount:', amount);
+      alert('Invalid amount. Please try again.');
+      return;
+    }
+    try {
+      const invoiceData = await this.createInvoice();
+      this.displayInvoice(invoiceData);
+    } catch (error) {
+      console.error('Error handling tip:', error);
+      alert('Failed to create invoice. Please try again.');
+    }
+  }
+
+  displayInvoice(invoiceData) {
+    if (invoiceData && invoiceData.paymentRequest) {
+      this.renderQRCode(invoiceData.paymentRequest);
+      this.showQRCodeContainer();
+      if (this.openWalletButton) {
+        this.openWalletButton.href = `lightning:${encodeURIComponent(invoiceData.paymentRequest)}`;
+        this.openWalletButton.style.display = "block";
+      } else {
+        console.error('Open Wallet button not found');
+      }
+    } else {
+      console.error('Invalid invoice data:', invoiceData);
+      alert('Failed to generate invoice. Please try again.');
+    }
+  }
+
+  startPaymentCheck(paymentHash) {
+    const checkInterval = setInterval(async () => {
+      try {
+        const { paid } = await this.checkPayment(paymentHash);
+        if (paid) {
+          clearInterval(checkInterval);
+          this.handleSuccessfulPayment();
+        }
+      } catch (error) {
+        console.error('Error checking payment:', error);
+      }
+    }, 5000);
+  }
+
+  handleSuccessfulPayment() {
+    alert('Payment received! Thank you for your tip.');
+    this.qrCodeContainer.style.display = 'none';
+    this.openWalletButton.style.display = 'none';
+    this.tipAmountContainer.style.display = 'none';
   }
 
   renderQRCode(paymentRequest) {
@@ -129,22 +193,15 @@ export class SecureLightningPay {
       return;
     }
 
-    this.openWalletButton.href = `lightning:${encodeURIComponent(paymentRequest)}`;
-    this.openWalletButton.style.display = "inline-block";
-  }
+  } 
+
+  showQRCodeContainer() {
+    this.targetElement.style.display = 'block';
+  } 
 
   handleError(message, error) {
     console.error(message, error);
-    const errorElement = document.createElement('p');
-    errorElement.className = 'error';
-    errorElement.textContent = `${message}: ${error.message}`;
-    this.targetElement.innerHTML = '';
-    this.targetElement.appendChild(errorElement);
-  }
-
-  showQRCodeContainer() {
-    this.targetElement.style.display = "block";
-    this.generateQrButton.style.display = "none";
+    alert(message);
   }
 }
 
@@ -157,12 +214,14 @@ export class SecureLightningPay {
 //   albyAccountId: "yeghro", // Your Alby account ID (if using Getalby)
 //   lnbitsUrl: "https://lnbits.yeghro.site", // Your LNbits instance URL (if using LNbits)
 //   lnbitsWalletId: lnbitsKey, // Your LNbits wallet ID (if using LNbits)
-//   amount: 1000, // desired tip amount in sats
+//   tipAmounts: [100, 1000, 5000, 10000], // Array of tip amount options in sats
 //   targetElement: document.getElementById("qr-code-container"),
-//   generateQrButton: document.getElementById("generate-qr"),
+//   showTipOptionsButton: document.getElementById("show-tip-options"),
+//   tipAmountContainer: document.getElementById("tip-amount-container"),
 //   openWalletButton: document.getElementById("open-wallet"),
 // });
 
+// The click event listener is now set up in the constructor, so you don't need this:
 // document.getElementById("generate-qr").addEventListener("click", () => {
 //   lnPay.generateQRCode();
 // });

@@ -2,18 +2,24 @@
 <html lang="en">
   <head>
       <meta charset="UTF-8">
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Nostr Inactive Users Checker</title>
+      <link rel="icon" type="image/png" href="favicon.webp">
       <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <header>
-      <nav>
-        <button onclick="window.location.href='https://yeghro.site'">Home</button>
-      </nav>
+      <div class="header_container">  
+        <div class="yeghro_logo_container">
+          <a href="https://yeghro.site">
+            <img src="favicon.webp" alt="yeghro_logo" class="yeghro_logo">
+          </a>
+        </div>
+      </div>
     </header>
-    <div class="container">
+    <div class="body-container">
     <h1>Nostr Inactive Users Checker</h1>
     <h2>! CAUTION !</h2>
     <p>
@@ -40,7 +46,7 @@
     <p>
       Login below to begin checking your nostr follow list for inactive users.
     </p>
-    <button id="loginButton">Log in with Nostr</button>
+    <button id="loginButton" type="button" class="primary-button">Use Nostr Extension</button>
     <div id="spinnerContainer" style="display: none;">
       <div class="spinner"></div>
     </div>
@@ -54,7 +60,7 @@
         name="manualPubkey"
       />
     </div>
-    <button id="checkManualPubkeyButton">Check Manual Pubkey</button>
+    <button id="checkManualPubkeyButton" type="button" class="primary-button">Check Pubkey Manually</button>
     <div id="loadingSpinner" class="spinner" style="display: none;"></div>
 
     <!-- User Profile Card -->
@@ -63,7 +69,7 @@
       <img id="userPicture" alt="User Picture" />
       <p id="userName"></p>
       <p id="userBio"></p>
-      <button id="readMoreButton">Read more</button>
+      <button id="readMoreButton" type="button">Read more</button>
       <p id="nip05"></p>
       <p id="webSiteUrl"></p>
     </div>
@@ -89,22 +95,23 @@
     </div>
     
     <div id="progressContainer">
-      <div id="progressBar">0%</div>
+      <div id="progressBar"></div>
     </div>
 
-    <button id="createKind3EventButton" style="display: none">
-      Click to unFollow inactive users
+    <button id="createKind3EventButton" type="button" class="danger-button" style="display: none">
+      Unfollow Inactive Users
     </button>
 
     <div id="ln-pay-container" class="qr-code-module">
-      <h3>If you found this tool useful feel free to leave use a tip.</h3>
-      <button id="generate-qr" class="wallet-button">Click To Tip</button>
+      <h3>If you found this tool useful, feel free to leave a tip.</h3>
+      <button id="show-tip-options" type="button" class="secondary-button">Click To Tip</button>
+      <div id="tip-amount-container" style="display: none;">
+        <!-- Tip amount buttons will be dynamically inserted here -->
+      </div>
       <div id="qr-code-container" class="qr-code-container"></div>
-      <a href="#" id="open-wallet" class="wallet-button">Open to wallet</a>
+      <a href="#" id="open-wallet" class="secondary-button" style="display: none;">Open Wallet</a>
     </div>    
 
-    <!-- Include the main JavaScript file -->
-    <script type="module" src="./src/lightningTips.js"></script>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

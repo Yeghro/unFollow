@@ -82,27 +82,14 @@ export function displayPubkeyInformation(
   nonActiveNpubsList.innerHTML = ""; // Clear previous list
 
   nonActivePubkeys.forEach((pubkey) => {
-    // console.log(`Processing non-active pubkey: ${pubkey}`);
     const listItem = document.createElement("li");
     const link = document.createElement("a");
     link.href = `https://primal.net/p/${pubkey}`;
     link.target = "_blank";
     link.textContent = pubkey;
-    link.style.color = "rgb(193, 177, 148)";
-    link.style.textDecoration = "none";
+    link.classList.add("pubkey-link");
     listItem.appendChild(link);
-    listItem.style.padding = "10px";
-    listItem.style.backgroundColor = "rgb(46, 0, 46)";
-    listItem.style.marginBottom = "5px";
-    listItem.style.borderRadius = "4px";
-    listItem.style.fontFamily = "Arial, sans-serif";
-    listItem.style.fontSize = "14px";
-    listItem.addEventListener("mouseover", function () {
-      this.style.backgroundColor = "rgb(128, 83, 0)";
-    });
-    listItem.addEventListener("mouseout", function () {
-      this.style.backgroundColor = "rgb(46, 0, 46)";
-    });
+    listItem.classList.add("pubkey-item");
 
     // Find the associated kind 0 event to display name and nip05
     const kind0Event = followedKind0.get(pubkey);
@@ -125,27 +112,14 @@ export function displayPubkeyInformation(
   // Ensure inactiveNpubs is an array before iterating
   if (Array.isArray(inactiveNpubs)) {
     inactiveNpubs.forEach((npub) => {
-      // console.log(`Processing inactive npub: ${npub}`);
       const listItem = document.createElement("li");
       const link = document.createElement("a");
       link.href = `https://primal.net/p/${npub}`;
       link.target = "_blank";
       link.textContent = npub;
-      link.style.color = "rgb(193, 177, 148)";
-      link.style.textDecoration = "none";
+      link.classList.add("pubkey-link");
       listItem.appendChild(link);
-      listItem.style.padding = "10px";
-      listItem.style.backgroundColor = "rgb(46, 0, 46)";
-      listItem.style.marginBottom = "5px";
-      listItem.style.borderRadius = "4px";
-      listItem.style.fontFamily = "Arial, sans-serif";
-      listItem.style.fontSize = "14px";
-      listItem.addEventListener("mouseover", function () {
-        this.style.backgroundColor = "rgb(128, 83, 0)";
-      });
-      listItem.addEventListener("mouseout", function () {
-        this.style.backgroundColor = "rgb(46, 0, 46)";
-      });
+      listItem.classList.add("pubkey-item");
 
       nonActiveNpubsList.appendChild(listItem);
     });
