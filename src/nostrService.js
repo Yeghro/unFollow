@@ -38,7 +38,7 @@ const initializeNip07Signer = async () => {
   }
 };
 
-const createWebSocket = (url) => {
+export const createWebSocket = (url) => {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
     const timeoutId = setTimeout(() => {

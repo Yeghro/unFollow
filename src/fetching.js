@@ -10,7 +10,7 @@ function createSubscriptionId() {
   return Math.random().toString(36).substr(2, 9);
 }
 
-function isValidHexKey(str) {
+export function isValidHexKey(str) {
   return /^[0-9a-fA-F]{64}$/.test(str);
 }
 
@@ -64,13 +64,16 @@ export async function fetchKind0Events(pubkeys) {
   return allEvents.flat();
 }
 export async function fetchKind3Events(pubkey) {
+  console.log("pubkey recieved by fetchkin3events:", pubkey);
   const subscriptionId = createSubscriptionId();
   const request = createNostrRequest(subscriptionId, [pubkey], [3]);
+  console.log("Request created for kind3 fetch:", request);
   const allEvents = await Promise.all(
     Object.values(relays).map(function (relay) {
       return fetchEventsFromRelay(relay, request, subscriptionId, 3);
     })
   );
+  console.log("fetched kind3 events:", allEvents);
   const events = allEvents.flat();
   const latestEvent = events.reduce(function (latest, event) {
     if (!latest || event.created_at > latest.created_at) {
