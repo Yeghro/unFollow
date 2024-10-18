@@ -8,6 +8,20 @@
       <link rel="icon" type="image/png" href="favicon.webp">
       <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="style.css">
+
+      <!-- Open Graph meta tags for social media previews -->
+      <meta property="og:title" content="Nostr Inactive Users Checker" />
+      <meta property="og:description" content="Check your Nostr follow list for inactive users easily and safely with this tool." />
+      <meta property="og:image" content="https://unfollow.yeghro.site/favicon.webp" /> 
+      <meta property="og:url" content="https://unfollow.yeghro.site" />
+      <meta property="og:type" content="website" />
+
+      <!-- Twitter Card meta tags for Twitter previews -->
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="Nostr Inactive Users Checker" />
+      <meta name="twitter:description" content="Check your Nostr follow list for inactive users easily and safely with this tool." />
+      <meta name="twitter:image" content="https://unfollow.yeghro.site/favicon.webp" />
+
   </head>
   <body>
     <header>
@@ -20,98 +34,98 @@
       </div>
     </header>
     <div class="body-container">
-    <h1>Nostr Inactive Users Checker</h1>
-    <h2>! CAUTION !</h2>
-    <p>
-      Before using this app, please consider backing up your follow
-      list by adding wss://hist.nostr.land to your relay list, then follow
-      someone or unfollow someone to update your relay list.... Just in case,
-      because you never know
-    </p>
-    <h2>! CAUTION !</h2>
-    <p>
-      It’s also a good idea to run the check a couple of time to ensure the result are the same or at least very close to the same before unfollowing to ensure you didn’t run into a glitchy result.
-    </p>
-    <div class="input-container">
-      <label for="inactiveMonths">Inactive Months:</label>
-      <input
-        type="number"
-        id="inactiveMonths"
-        name="inactiveMonths"
-        min="1"
-        max="12"
-        value="8"
-      />
-    </div>
-    <p>
-      Login below to begin checking your nostr follow list for inactive users.
-    </p>
-    <button id="loginButton" type="button" class="primary-button">Use Nostr Extension</button>
-    <div id="spinnerContainer" style="display: none;">
-      <div class="spinner"></div>
-    </div>
-    <p>or enter an npub to check their follow list for inactive users</p>
-    <div class="input-container">
-      <label for="manualPubkey">Enter Pubkey/Npub:</label>
-      <input
-        style="width: 300px"
-        type="text"
-        id="manualPubkey"
-        name="manualPubkey"
-      />
-    </div>
-    <button id="checkManualPubkeyButton" type="button" class="primary-button">Check Pubkey Manually</button>
-    <div id="loadingSpinner" class="spinner" style="display: none;"></div>
-
-    <!-- User Profile Card -->
-    <h2>Profile Information</h2>
-    <div id="userProfileCard" class="profile-card">
-      <img id="userPicture" alt="User Picture" />
-      <p id="userName"></p>
-      <p id="userBio"></p>
-      <button id="readMoreButton" type="button">Read more</button>
-      <p id="nip05"></p>
-      <p id="webSiteUrl"></p>
-    </div>
-    <p id="publicKey">Npub:</p>
-    <p id="hexKey">Hex Key:</p>
-
-    <h2>Pubkey Information</h2>
-    <p id="totalPubkeys">Total Pubkeys Found:</p>
-
-    <div class="tab-container">
-      <button class="tablink" data-tab="Pubkeys">Pubkeys</button>
-      <button class="tablink" data-tab="Npubs">Npubs</button>
-    </div>
-    
-    <div id="Pubkeys" class="tabcontent">
-      <h4>Non-Active Pubkeys</h4>
-      <ul id="nonActivePubkeys"></ul>
-    </div>
-    
-    <div id="Npubs" class="tabcontent" style="display: none">
-      <h4>Non-Active Npubs</h4>
-      <ul id="nonActiveNpubs"></ul>
-    </div>
-    
-    <div id="progressContainer">
-      <div id="progressBar"></div>
-    </div>
-
-    <button id="createKind3EventButton" type="button" class="danger-button" style="display: none">
-      Unfollow Inactive Users
-    </button>
-
-    <div id="ln-pay-container" class="qr-code-module">
-      <h3>If you found this tool useful, feel free to leave a tip.</h3>
-      <button id="show-tip-options" type="button" class="secondary-button">Click To Tip</button>
-      <div id="tip-amount-container" style="display: none;">
-        <!-- Tip amount buttons will be dynamically inserted here -->
+      <h1>Nostr Inactive Users Checker</h1>
+      <h2>! CAUTION !</h2>
+      <p>
+        Before using this app, please consider backing up your follow
+        list by adding wss://hist.nostr.land to your relay list, then follow
+        someone or unfollow someone to update your relay list.... Just in case,
+        because you never know.
+      </p>
+      <h2>! CAUTION !</h2>
+      <p>
+        It’s also a good idea to run the check a couple of times to ensure the results are consistent before unfollowing, to avoid glitchy results.
+      </p>
+      <div class="input-container">
+        <label for="inactiveMonths">Inactive Months:</label>
+        <input
+          type="number"
+          id="inactiveMonths"
+          name="inactiveMonths"
+          min="1"
+          max="12"
+          value="8"
+        />
       </div>
-      <div id="qr-code-container" class="qr-code-container"></div>
-      <a href="#" id="open-wallet" class="secondary-button" style="display: none;">Open Wallet</a>
-    </div>    
+      <p>
+        Login below to begin checking your nostr follow list for inactive users.
+      </p>
+      <button id="loginButton" type="button" class="primary-button">Use Nostr Extension</button>
+      <div id="spinnerContainer" style="display: none;">
+        <div class="spinner"></div>
+      </div>
+      <p>or enter an npub to check their follow list for inactive users</p>
+      <div class="input-container">
+        <label for="manualPubkey">Enter Pubkey/Npub:</label>
+        <input
+          style="width: 300px"
+          type="text"
+          id="manualPubkey"
+          name="manualPubkey"
+        />
+      </div>
+      <button id="checkManualPubkeyButton" type="button" class="primary-button">Check Pubkey Manually</button>
+      <div id="loadingSpinner" class="spinner" style="display: none;"></div>
 
-    <script type="module" src="./src/main.js"></script>
+      <!-- User Profile Card -->
+      <h2>Profile Information</h2>
+      <div id="userProfileCard" class="profile-card">
+        <img id="userPicture" alt="User Picture" />
+        <p id="userName"></p>
+        <p id="userBio"></p>
+        <button id="readMoreButton" type="button">Read more</button>
+        <p id="nip05"></p>
+        <p id="webSiteUrl"></p>
+      </div>
+      <p id="publicKey">Npub:</p>
+      <p id="hexKey">Hex Key:</p>
+
+      <h2>Pubkey Information</h2>
+      <p id="totalPubkeys">Total Pubkeys Found:</p>
+
+      <div class="tab-container">
+        <button class="tablink" data-tab="Pubkeys">Pubkeys</button>
+        <button class="tablink" data-tab="Npubs">Npubs</button>
+      </div>
+      
+      <div id="Pubkeys" class="tabcontent">
+        <h4>Non-Active Pubkeys</h4>
+        <ul id="nonActivePubkeys"></ul>
+      </div>
+      
+      <div id="Npubs" class="tabcontent" style="display: none">
+        <h4>Non-Active Npubs</h4>
+        <ul id="nonActiveNpubs"></ul>
+      </div>
+      
+      <div id="progressContainer">
+        <div id="progressBar"></div>
+      </div>
+
+      <button id="createKind3EventButton" type="button" class="danger-button" style="display: none">
+        Unfollow Inactive Users
+      </button>
+
+      <div id="ln-pay-container" class="qr-code-module">
+        <h3>If you found this tool useful, feel free to leave a tip.</h3>
+        <button id="show-tip-options" type="button" class="secondary-button">Click To Tip</button>
+        <div id="tip-amount-container" style="display: none;">
+          <!-- Tip amount buttons will be dynamically inserted here -->
+        </div>
+        <div id="qr-code-container" class="qr-code-container"></div>
+        <a href="#" id="open-wallet" class="secondary-button" style="display: none;">Open Wallet</a>
+      </div>    
+
+      <script type="module" src="./src/main.js"></script>
   </body>
 </html>
