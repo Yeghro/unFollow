@@ -24,13 +24,6 @@ body {
   font-size: var(--base-font-size);
 }
 
-/* Common styles for container-like elements */
-.container, header, .header_container, .home_nav_container, .yeghro_logo_container, .body-container {
-  background-color: var(--container-bg);
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
 .body-container {
   width: 90%;
   max-width: 800px;
@@ -43,7 +36,15 @@ body {
   justify-content: center;
 }
 
-header, .header_container, .home_nav_container {
+/* Common styles for all container-like elements */
+.container, header, .header_container, .home_nav_container, .yeghro_logo_container, .body-container {
+  background-color: var(--container-bg);
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Additional styles for header-like elements */
+header, .home_nav_container {
   display: flex;
   width: 100%;
   height: 100px;
@@ -274,7 +275,7 @@ p, label {
   border: 4px solid var(--primary-color);
 }
 
-.profile-card #userBio {
+.profile-card #userBio {  
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
