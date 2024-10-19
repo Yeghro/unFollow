@@ -188,6 +188,7 @@ const getUserRelays = async (pubkey) => {
   );
   return Array.from(userRelays);
 };
+
 export const connectUsersRelays = async (targetPubkey) => {
   logger.info(`Starting connectUsersRelays for pubkey: ${targetPubkey}`);
 
