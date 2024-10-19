@@ -1,3 +1,5 @@
+import { nip19 } from 'nostr-tools';
+
 export function updateUserProfileCard(profile) {
   const profileData = JSON.parse(profile.content);
   // console.log("Parsed profile:", profileData);
@@ -109,6 +111,19 @@ export function displayPubkeyInformation(
     nonActivePubkeysList.appendChild(listItem);
   });
 
+  // Create a Map to store npub to pubkey associations
+  const npubToPubkeyMap = new Map();
+
+  // Populate the npubToPubkeyMap
+  inactiveNpubs.forEach(npub => {
+    try {
+      const pubkey = nip19.decode(npub).data;
+      npubToPubkeyMap.set(npub, pubkey);
+    } catch (error) {
+      console.error(`Error decoding npub ${npub}:`, error);
+    }
+  });
+
   // Ensure inactiveNpubs is an array before iterating
   if (Array.isArray(inactiveNpubs)) {
     inactiveNpubs.forEach((npub) => {
@@ -121,10 +136,31 @@ export function displayPubkeyInformation(
       listItem.appendChild(link);
       listItem.classList.add("pubkey-item");
 
+      // Get the corresponding pubkey for this npub
+      const pubkey = npubToPubkeyMap.get(npub);
+      
+      // Find the associated kind 0 event using the pubkey
+      if (pubkey) {
+        const kind0Event = followedKind0.get(pubkey);
+        if (kind0Event) {
+          try {
+            const content = JSON.parse(kind0Event.content);
+            const name = content.name || "N/A";
+            const nip05 = content.nip05 || "N/A";
+            const info = document.createElement("p");
+            info.textContent = `Name: ${name}, nip05: ${nip05}`;
+            info.style.color = "rgb(193, 177, 148)";
+            listItem.appendChild(info);
+          } catch (error) {
+            console.error(`Error parsing kind0 event for npub ${npub}:`, error);
+          }
+        }
+      }
+
       nonActiveNpubsList.appendChild(listItem);
     });
   } else {
-    // console.error("inactiveNpubs is not an array:", inactiveNpubs);
+    console.error("inactiveNpubs is not an array:", inactiveNpubs);
   }
 
   const totalNonActivePubkeys = document.createElement("p");

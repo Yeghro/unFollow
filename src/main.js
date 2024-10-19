@@ -38,6 +38,9 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       const profile = kind0Events[0];
       updateUserProfileCard(profile);
 
+      const pubkeyContainer = document.getElementById("pubkey-container");
+      pubkeyContainer.style.display = "block";
+
       document.getElementById(
         "publicKey"
       ).textContent = `Npub: ${nip19.npubEncode(profile.pubkey)}`;

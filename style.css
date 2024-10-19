@@ -399,6 +399,7 @@ a:active {
   button, .tablink, .wallet-button {
     padding: 12px 24px;
     font-size: 1rem;
+    margin: 10px;
   }
 }
 

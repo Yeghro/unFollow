@@ -78,8 +78,8 @@
       <div id="loadingSpinner" class="spinner" style="display: none;"></div>
 
       <!-- User Profile Card -->
-      <h2>Profile Information</h2>
       <div id="userProfileCard" class="profile-card">
+        <h2>Profile Information</h2>
         <img id="userPicture" alt="User Picture" />
         <p id="userName"></p>
         <p id="userBio"></p>
@@ -88,20 +88,20 @@
         <p id="webSiteUrl"></p>
       </div>
       
-      <div id="pubkey-container" class="pubkey-container">
+      <div id="pubkey-container" class="pubkey-container" style="display: none;">
+        <h2>Pubkey Information</h2>
         <p id="publicKey">Npub:</p>
         <p id="hexKey">Hex Key:</p>
+        <p id="totalPubkeys">Total Pubkeys Found:</p>
       </div>
 
-      <h2>Pubkey Information</h2>
-      <p id="totalPubkeys">Total Pubkeys Found:</p>
 
       <div class="tab-container">
         <button class="tablink" data-tab="Pubkeys">Pubkeys</button>
         <button class="tablink" data-tab="Npubs">Npubs</button>
       </div>
       
-      <div id="Pubkeys" class="tabcontent">
+      <div id="Pubkeys" class="tabcontent" style="display: none;">
         <h4>Non-Active Pubkeys</h4>
         <ul id="nonActivePubkeys"></ul>
       </div>
