@@ -37,14 +37,14 @@
       <h1>Nostr Inactive Users Checker</h1>
       <h2>! CAUTION !</h2>
       <p>
-        Before using this app, please consider backing up your follow
+        Before using this tool, please consider backing up your follow
         list by adding wss://hist.nostr.land to your relay list, then follow
-        someone or unfollow someone to update your relay list.... Just in case,
+        someone or unfollow someone to update and backup your follow list.... Just in case,
         because you never know.
       </p>
       <h2>! CAUTION !</h2>
       <p>
-        It’s also a good idea to run the check a couple of times to ensure the results are consistent before unfollowing, to avoid glitchy results.
+        It's also a good idea to run the check a couple of times to ensure the results are consistent before unfollowing.
       </p>
       <div class="input-container">
         <label for="inactiveMonths">Inactive Months:</label>
@@ -96,7 +96,7 @@
       </div>
 
 
-      <div class="tab-container">
+      <div id="tab-container" class="tab-container" style="display: none;">
         <button class="tablink" data-tab="Pubkeys">Pubkeys</button>
         <button class="tablink" data-tab="Npubs">Npubs</button>
       </div>
@@ -111,7 +111,7 @@
         <ul id="nonActiveNpubs"></ul>
       </div>
       
-      <div id="progressContainer">
+      <div id="progressContainer" style="display: none;">
         <div id="progressBar"></div>
       </div>
 

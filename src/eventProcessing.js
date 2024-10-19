@@ -14,6 +14,9 @@ export async function categorizePubkeys(
   const followedKind0 = new Map();
   console.log("Followed pubkeys sent to categorize:", followedPubkeys);
 
+  const progressContainer = document.getElementById("progressContainer");
+  progressContainer.style.display = "block";
+
   let remainingPubkeys = Array.from(inactivePubkeys);
   let retryCount = 0;
 

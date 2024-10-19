@@ -74,6 +74,9 @@ export function displayPubkeyInformation(
   // console.log("Active Pubkeys:", activePubkeys);
   // console.log("Followed Kind 0:", followedKind0);
 
+  const tabContainer = document.getElementById("tab-container");
+  tabContainer.style.display = "block";
+
   document.getElementById(
     "totalPubkeys"
   ).textContent = `Total Pubkeys Found: ${totalPubkeys}`;
