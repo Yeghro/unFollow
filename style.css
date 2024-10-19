@@ -6,6 +6,9 @@
   --container-bg: #1e1e1e;
   --gradient-start: #ff8c00;
   --gradient-end: #8a2be2;
+  --base-font-size: 16px;
+  --h1-font-size: 1.5rem;
+  --h2-font-size: 1.3rem;
 }
 
 body {
@@ -18,6 +21,7 @@ body {
   align-items: center;
   min-height: 100vh;
   color: var(--text-color);
+  font-size: var(--base-font-size);
 }
 
 /* Combine common styles for container-like elements */
@@ -28,11 +32,11 @@ body {
 }
 
 .body-container {
+  width: 90%;
   max-width: 800px;
-  width: 100%;
-  padding: 30px;
-  margin-top: 100px;
-  margin-bottom: 100px;
+  padding: 1.25rem;
+  margin-top: 3.125rem;
+  margin-bottom: 3.125rem;
   border: 2px solid var(--primary-color);
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -128,11 +132,11 @@ ul {
 }
 
 ul li {
-  padding: 15px 20px;
+  padding: 0.9375rem 1.25rem;
   background: linear-gradient(45deg, #3a0057, #4a0082);
   margin-bottom: 12px;
   border-radius: 10px;
-  font-size: 16px;
+  font-size: 1rem;
   color: var(--text-color);
   text-align: left;
   transition: all 0.3s ease;
@@ -165,11 +169,11 @@ p, label {
 button, .tablink, .wallet-button {
   background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
   color: white;
-  padding: 12px 24px;
+  padding: 10px 20px;
   border: none;
   border-radius: 25px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -246,7 +250,8 @@ button:hover, .tablink:hover, .wallet-button:hover {
   border: none;
   background-color: #2e2e2e;
   color: white;
-  width: 80px;
+  width: 5rem;
+  max-width: 100%;
   text-align: center;
   transition: all 0.3s ease;
 }
@@ -258,8 +263,9 @@ button:hover, .tablink:hover, .wallet-button:hover {
 
 .tab-container {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: 20px;
+  gap: 10px;
 }
 
 .tabcontent {
@@ -267,6 +273,19 @@ button:hover, .tablink:hover, .wallet-button:hover {
   padding: 20px;
   background-color: #2e2e2e;
   border-radius: 10px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+.pubkey-container {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 100%;
 }
 
 .profile-card {
@@ -277,7 +296,8 @@ button:hover, .tablink:hover, .wallet-button:hover {
   margin: 20px auto;
   border-radius: 10px;
   text-align: center;
-  width: 320px;
+  width: 90%;
+  max-width: 320px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
@@ -357,6 +377,8 @@ button:hover, .tablink:hover, .wallet-button:hover {
   background: linear-gradient(135deg, #ff9900, #8e44ad); /* Gradient applied directly to the image */
   padding: 10px;
   border-radius: 10px;
+  max-width: 100%;
+  height: auto;
 }
 
 #ln-pay-container img {
@@ -436,4 +458,120 @@ a:active {
 }
 
 /* Add this to your existing CSS */
+
+/* Responsive adjustments */
+@media screen and (min-width: 600px) {
+  :root {
+    --base-font-size: 18px;
+    --h1-font-size: 2rem;
+    --h2-font-size: 1.5rem;
+  }
+
+  .body-container {
+    padding: 30px;
+    margin-top: 75px;
+    margin-bottom: 75px;
+  }
+
+  button, .tablink, .wallet-button {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  :root {
+    --base-font-size: 20px;
+    --h1-font-size: 2.5rem;
+    --h2-font-size: 1.8rem;
+  }
+
+  .body-container {
+    padding: 40px;
+    margin-top: 100px;
+    margin-bottom: 100px;
+  }
+}
+
+/* Make images responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Use flexbox for layout */
+.input-container, .tab-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Adjust button sizes for mobile */
+button, .tablink, .wallet-button {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+}
+
+@media screen and (min-width: 600px) {
+  button, .tablink, .wallet-button {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+}
+
+/* Make the profile card responsive */
+.profile-card {
+  width: 75%;
+  max-width: 320px;
+}
+
+/* ... continue with other elements ... */
+
+/* Make header more responsive */
+@media screen and (max-width: 600px) {
+  header, .header_container, .home_nav_container {
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Improve list item responsiveness */
+ul li {
+  padding: 0.9375rem 1.25rem;
+  font-size: 1rem;
+}
+
+@media screen and (max-width: 600px) {
+  ul li {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Enhance form input responsiveness */
+.input-container input {
+  width: 5rem;
+  max-width: 100%;
+}
+
+/* Improve QR code container responsiveness */
+#qr-code-container img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Adjust font sizes for better readability on small screens */
+@media screen and (max-width: 400px) {
+  :root {
+    --base-font-size: 14px;
+    --h1-font-size: 1.3rem;
+    --h2-font-size: 1.1rem;
+  }
+}
+
+/* Make sure all text elements use the variable font sizes */
+h1 { font-size: var(--h1-font-size); }
+h2 { font-size: var(--h2-font-size); }
 
