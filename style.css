@@ -9,6 +9,11 @@
   --base-font-size: 16px;
   --h1-font-size: 1.5rem;
   --h2-font-size: 1.3rem;
+  --common-border-radius: 10px;
+  --common-transition: all 0.3s ease;
+  --common-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --gradient-normal: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
+  --gradient-reverse: linear-gradient(45deg, var(--gradient-end), var(--gradient-start));
 }
 
 body {
@@ -23,24 +28,11 @@ body {
   color: var(--text-color);
   font-size: var(--base-font-size);
 }
-
-.body-container {
-  width: 90%;
-  max-width: 800px;
-  padding: 1.25rem;
-  margin: 3.125rem 0;
-  border: 2px solid var(--primary-color);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
 /* Common styles for all container-like elements */
 .container, header, .header_container, .home_nav_container, .yeghro_logo_container, .body-container {
   background-color: var(--container-bg);
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: var(--common-border-radius);
+  box-shadow: var(--common-box-shadow);
 }
 
 /* Additional styles for header-like elements */
@@ -84,22 +76,74 @@ header, .home_nav_container {
 
 /* Common button styles */
 .nav-button, button, .tablink, .wallet-button {
-  background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
+  background: var(--gradient-normal);
   color: white;
   padding: 10px 20px;
   border: none;
   border-radius: 25px;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: all 0.3s ease;
+  transition: var(--common-transition);
   text-transform: uppercase;
   letter-spacing: 1px;
   text-decoration: none;
   display: inline-block;
 }
 
+.body-container {
+  position: relative;
+  width: 90%;
+  max-width: 800px;
+  padding: 1.25rem;
+  margin: 3.125rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--common-border-radius);
+  box-shadow: var(--common-box-shadow);
+  background-color: var(--container-bg); /* Ensure the background is set */
+
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: true;
+}
+
+
+.body-container::after,
+.body-container::before {
+  content: 'before';
+  background-color: var(--container-bg);
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  --angle: 0deg;
+  background-image: conic-gradient(
+    from var(--angle), orange, purple, gold 
+  );
+  animation: auto-rotate 5s linear infinite;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  padding: 10px;
+}
+@keyframes auto-rotate {
+  to {
+    --angle: 360deg;
+  }
+}
+.body-container::after {
+  top: 100%;
+  filter: blur(60px);
+}
+
 .nav-button:hover, button:hover, .tablink:hover, .wallet-button:hover {
-  background: linear-gradient(45deg, var(--gradient-end), var(--gradient-start));
+  background: var(--gradient-reverse);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -384,64 +428,33 @@ a:active {
 
 /* Responsive adjustments */
 @media screen and (min-width: 600px) {
-  :root {
-    --base-font-size: 18px;
-    --h1-font-size: 2rem;
-    --h2-font-size: 1.5rem;
-  }
-
-  .body-container {
-    padding: 30px;
-    margin-top: 75px;
-    margin-bottom: 75px;
-  }
-
-  button, .tablink, .wallet-button {
-    padding: 12px 24px;
-    font-size: 1rem;
-    margin: 10px;
-  }
+  /* Styles for 600px and above */
 }
 
 @media screen and (min-width: 1024px) {
-  :root {
-    --base-font-size: 20px;
-    --h1-font-size: 2.5rem;
-    --h2-font-size: 1.8rem;
-  }
+  /* Additional styles for 1024px and above */
+}
 
-  .body-container {
-    padding: 40px;
-    margin-top: 100px;
-    margin-bottom: 100px;
-  }
+@media screen and (max-width: 600px) {
+  /* Styles for 600px and below */
+}
+
+@media screen and (max-width: 400px) {
+  /* Additional styles for 400px and below */
+}
+
+h1 { font-size: var(--h1-font-size); }
+h2 { font-size: var(--h2-font-size); }
+
+.tabcontent, .pubkey-container {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 100%;
 }
 
 img {
   max-width: 100%;
   height: auto;
 }
-
-@media screen and (max-width: 600px) {
-  header, .header_container, .home_nav_container {
-    height: auto;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  ul li {
-    padding: 0.75rem 1rem;
-    font-size: 0.9rem;
-  }
-}
-
-@media screen and (max-width: 400px) {
-  :root {
-    --base-font-size: 14px;
-    --h1-font-size: 1.3rem;
-    --h2-font-size: 1.1rem;
-  }
-}
-
-h1 { font-size: var(--h1-font-size); }
-h2 { font-size: var(--h2-font-size); }
