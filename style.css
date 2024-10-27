@@ -14,6 +14,8 @@
   --common-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   --gradient-normal: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
   --gradient-reverse: linear-gradient(45deg, var(--gradient-end), var(--gradient-start));
+  --h3-font-size: 1.2rem;
+  --h4-font-size: 1.1rem;
 }
 
 body {
@@ -94,11 +96,12 @@ header, .home_nav_container {
   position: relative;
   width: 800px;
   max-width: 90%;
-  margin: 3.125rem 0;
-  padding: 10px;
+  margin: 3.125rem auto; 
+  padding: 20px; 
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box; 
 }
 
 @property --angle {
@@ -143,11 +146,16 @@ header, .home_nav_container {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-h1, h2, h4 {
+h1, h2, h3, h4 {
   color: var(--primary-color);
   text-align: center;
   margin-bottom: 20px;
 }
+
+h1 { font-size: var(--h1-font-size); }
+h2 { font-size: var(--h2-font-size); }
+h3 { font-size: var(--h3-font-size); }
+h4 { font-size: var(--h4-font-size); }
 
 ul {
   list-style-type: none;
@@ -246,6 +254,9 @@ p, label {
 .input-container {
   margin: 20px auto;
   text-align: center;
+  width: 100%;
+  max-width: 350px; 
+  box-sizing: border-box; 
 }
 
 .input-container input {
@@ -255,15 +266,29 @@ p, label {
   border: none;
   background-color: #2e2e2e;
   color: white;
-  width: 5rem;
+  width: 100%;
   max-width: 100%;
   text-align: center;
   transition: all 0.3s ease;
+  box-sizing: border-box; 
 }
 
 .input-container input:focus {
   outline: none;
   box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.pubkey-container {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+.manualPubkey {
+  width: 100%;
+  max-width: 100%;
 }
 
 .tab-container {
@@ -283,14 +308,7 @@ p, label {
   word-break: break-word;
   hyphens: auto;
   max-width: 100%;
-}
-
-.pubkey-container {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
-  max-width: 100%;
+  margin: inherit;
 }
 
 .profile-card {
@@ -436,17 +454,6 @@ a:active {
 
 @media screen and (max-width: 400px) {
   /* Additional styles for 400px and below */
-}
-
-h1 { font-size: var(--h1-font-size); }
-h2 { font-size: var(--h2-font-size); }
-
-.tabcontent, .pubkey-container {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
-  max-width: 100%;
 }
 
 img {
