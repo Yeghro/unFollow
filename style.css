@@ -31,14 +31,12 @@ body {
   font-size: var(--base-font-size);
 }
 /* Common styles for all container-like elements */
-.container, header, .header_container, .home_nav_container, .yeghro_logo_container, .body-container {
-  background-color: var(--container-bg);
-  border-radius: var(--common-border-radius);
-  box-shadow: var(--common-box-shadow);
+.container, .header_container {
+  background-color: rgba(0, 0, 0, 0.9);
 }
 
 /* Additional styles for header-like elements */
-header, .home_nav_container {
+header {
   display: flex;
   width: 100%;
   height: 100px;
@@ -47,37 +45,64 @@ header, .home_nav_container {
   align-items: center;
   padding: 10px;
   position: relative;
+  background-color: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
 }
 
 .yeghro_logo_container {
   position: static;
+  height: 50px;
+  width: 50px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.header_container::after,
+.header_container::before {
+  content: '';
+  background-color: purple;
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border-radius: inherit;
+  --angle: 0deg;
+  background-image: conic-gradient(
+    from var(--angle), var(--primary-color), var(--secondary-color), var(--primary-color), var(--secondary-color)
+  );
+  animation: auto-rotate 20s linear infinite;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  padding: 1px;
+}
+
+.header_container::after {
+  filter: blur(10px);
 }
 
 .yeghro_logo {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 2px solid var(--primary-color);
-  box-shadow: 0 0 10px var(--primary-color);
+  width: 100%;
+  height: 100%;
   transition: all 0.3s ease;
-  background-color: var(--container-bg);
-  padding: 5px;
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 .yeghro_logo:hover {
   transform: translateY(-5px);
   box-shadow: 0 0 15px var(--primary-color);
   border-color: var(--gradient-start);
-  background-color: var(--gradient-start);
   color: var(--text-color);
 }
 
-.home_nav {
-  display: none;
+.yeghro_logo:active {
+  transform: scale(0.95);
+  filter: brightness(1.2);
+  transition: all 0.1s ease;
 }
 
 /* Common button styles */
-.nav-button, button, .tablink, .wallet-button {
+.nav-button, button, .tablink {
   background: var(--gradient-normal);
   color: white;
   padding: 10px 20px;
@@ -102,6 +127,7 @@ header, .home_nav_container {
   flex-direction: column;
   align-items: center;
   box-sizing: border-box; 
+  background-color: rgba(0, 0, 0, 0.9);
 }
 
 @property --angle {
@@ -140,7 +166,7 @@ header, .home_nav_container {
   }
 }
 
-.nav-button:hover, button:hover, .tablink:hover, .wallet-button:hover {
+.nav-button:hover, button:hover, .tablink:hover {
   background: var(--gradient-reverse);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
