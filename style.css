@@ -67,7 +67,7 @@ header {
   border-radius: inherit;
   --angle: 0deg;
   background-image: conic-gradient(
-    from var(--angle), var(--primary-color), var(--secondary-color), var(--primary-color), var(--secondary-color)
+    from var(--angle), var(--primary-color), var(--secondary-color), var(--primary-color), var(--secondary-color), var(--primary-color)
   );
   animation: auto-rotate 20s linear infinite;
   top: 50%;
@@ -147,7 +147,7 @@ header {
   border-radius: inherit;
   --angle: 0deg;
   background-image: conic-gradient(
-    from var(--angle), var(--primary-color), var(--secondary-color), var(--primary-color), var(--secondary-color)
+    from var(--angle), var(--primary-color), var(--secondary-color), var(--primary-color), var(--secondary-color), var(--primary-color)
   );
   animation: auto-rotate 20s linear infinite;
   top: 50%;
