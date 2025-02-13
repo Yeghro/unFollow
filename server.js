@@ -37,7 +37,19 @@ app.post('/api/create-invoice', async (req, res) => {
     console.log('Received request:', { amount, paymentSystem });
 
     if (paymentSystem === 'lnbits') {
-      // ... existing LNbits code ...
+      const response = await axios.post(
+        `${LNBITS_URL}/api/v1/payments`,
+        {
+          out: false,
+          amount: amount,
+          memo: 'LNbits Payment'
+        },
+        {
+          headers: { 'X-Api-Key': LNBITS_KEY }
+        }
+      );
+
+      res.json(response.data);
     } else if (paymentSystem === 'getalby') {
       // Fetch LNURL params
       const paramsResponse = await axios.get(
