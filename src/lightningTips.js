@@ -1,21 +1,50 @@
 import qrcode from "qrcode-generator";
 
+// SecureLightningPay class handles Lightning Network payments using either LNbits or GetAlby
 export class SecureLightningPay {
+  // Constructor initializes payment configuration
   constructor(config) {
+    // Base URL for API requests
     this.apiBaseUrl = config.apiBaseUrl || '';
+    // Available tip amounts in sats
     this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
+    // DOM elements for UI interaction
     this.targetElement = config.targetElement;
     this.showTipOptionsButton = config.showTipOptionsButton;
     this.tipAmountContainer = config.tipAmountContainer;
     this.openWalletButton = config.openWalletButton;
 
+    // Payment system configuration (lnbits or getalby)
     this.paymentSystem = config.paymentSystem;
     this.albyAccountId = config.albyAccountId;
     this.amount = config.amount;
 
-    this.initializeUI();``
+    // Store UI elements as class properties
+    this.qrCodeContainer = config.targetElement;
+    this.openWalletButton = config.openWalletButton;
+    this.tipAmountContainer = config.tipAmountContainer;
+    
+    if (!this.qrCodeContainer || !this.openWalletButton || !this.tipAmountContainer) {
+      throw new Error('Required UI elements not provided');
+    }
 
+    // Initialize the UI elements
+    this.initializeUI();
   }
+
+  // Main payment flow methods:
+  // 1. generateQRCode: Creates QR code for payment
+  // 2. getInvoiceData: Gets invoice based on payment system
+  // 3. createInvoice: Creates LNbits invoice
+  // 4. requestInvoice: Handles GetAlby invoice request
+  // 5. checkPayment: Monitors payment status
+
+  // Helper methods for UI handling:
+  // - initializeUI: Sets up event listeners
+  // - showTipOptions: Displays tip amount buttons
+  // - handleTip: Processes tip amount selection
+  // - displayInvoice: Shows invoice QR code
+  // - renderQRCode: Generates QR code image
 
   async generateQRCode() {
     try {
@@ -31,21 +60,19 @@ export class SecureLightningPay {
   }
 
   async getInvoiceData() {
-    switch (this.paymentSystem) {
-      case "getalby":
-        const lnurlParams = await this.fetchLNURLParams();
-        return await this.requestInvoice(lnurlParams);
-      case "lnbits":
-        return await this.createInvoice();
-      default:
-        throw new Error("Invalid payment system configured");
+    if (this.paymentSystem === 'getalby') {
+      const lnurlParams = await this.fetchLNURLParams();
+      return await this.requestInvoice(lnurlParams);
+    } else {
+      return await this.createInvoice();
     }
   }
 
   async fetchLNURLParams() {
-    const response = await fetch(`/api/fetch-lnurl-params/${encodeURIComponent(this.albyAccountId)}`);
+    const url = `https://getalby.com/lnurlp/${this.albyAccountId}`;
+    const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`Failed to fetch LNURL params: ${response.status}`);
     }
     return await response.json();
   }
@@ -61,55 +88,65 @@ export class SecureLightningPay {
       callbackUrl.searchParams.append("metadata", params.metadata);
     }
 
-    const response = await fetch('/api/create-invoice', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        paymentSystem: 'getalby', 
-        callbackUrl: callbackUrl.toString() 
-      })
-    });
+    const response = await fetch(callbackUrl);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`Failed to request invoice: ${response.status}`);
     }
     return await response.json();
   }
 
   async createInvoice() {
-    try {
-      const response = await fetch('/api/create-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          paymentSystem: 'lnbits', 
-          amount: this.amount 
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      throw error;
+    if (this.paymentSystem === 'getalby') {
+      const lnurlParams = await this.fetchLNURLParams();
+      return await this.requestInvoice(lnurlParams);
     }
+
+    // LNbits invoice creation
+    const response = await fetch(`${this.apiBaseUrl}/api/v1/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': this.lnbitsWalletId
+      },
+      body: JSON.stringify({
+        out: false,
+        amount: this.amount,
+        memo: 'LNbits Payment'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create invoice: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
-  async checkPayment(paymentHash) {
-    try {
-      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentHash}`);
+// Update payment checking for both systems
+async checkPayment(paymentIdentifier) {
+  try {
+    if (this.paymentSystem === 'getalby') {
+      // GetAlby verification
+      const response = await fetch(paymentIdentifier);
+      if (!response.ok) {
+        throw new Error('Failed to verify payment');
+      }
+      const data = await response.json();
+      return { paid: data.status === 'PAID' }; // Note: Changed from 'OK' to 'PAID'
+    } else {
+      // LNbits verification
+      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`);
       if (!response.ok) {
         throw new Error('Failed to check payment status');
       }
-      return response.json();
-    } catch (error) {
-      console.error('Error checking payment:', error);
-      throw error;
+      const data = await response.json();
+      return { paid: data.paid };
     }
+  } catch (error) {
+    console.error('Error checking payment:', error);
+    return { paid: false };
   }
-
+}
   initializeUI() {
     this.showTipOptionsButton.addEventListener('click', () => this.showTipOptions());
     this.tipAmountContainer.innerHTML = this.tipAmounts.map(amount => 
@@ -135,7 +172,7 @@ export class SecureLightningPay {
     }
     try {
       const invoiceData = await this.createInvoice();
-      this.displayInvoice(invoiceData);
+      await this.displayInvoice(invoiceData);
     } catch (error) {
       console.error('Error handling tip:', error);
       alert('Failed to create invoice. Please try again.');
@@ -143,40 +180,77 @@ export class SecureLightningPay {
   }
 
   displayInvoice(invoiceData) {
-    if (invoiceData && invoiceData.paymentRequest) {
-      this.renderQRCode(invoiceData.paymentRequest);
+    let paymentRequest;
+    
+    if (this.paymentSystem === 'getalby') {
+      paymentRequest = invoiceData.pr;
+    } else {
+      paymentRequest = invoiceData.paymentRequest;
+    }
+  
+    if (paymentRequest) {
+      this.renderQRCode(paymentRequest);
       this.showQRCodeContainer();
       if (this.openWalletButton) {
-        this.openWalletButton.href = `lightning:${encodeURIComponent(invoiceData.paymentRequest)}`;
+        this.openWalletButton.href = `lightning:${encodeURIComponent(paymentRequest)}`;
         this.openWalletButton.style.display = "block";
       } else {
         console.error('Open Wallet button not found');
+      }
+      
+      // Start payment check if verify URL is provided (GetAlby)
+      if (invoiceData.verify) {
+        this.startPaymentCheck(invoiceData.verify);
+      } else if (invoiceData.paymentHash) {
+        // LNbits payment check
+        this.startPaymentCheck(invoiceData.paymentHash);
       }
     } else {
       console.error('Invalid invoice data:', invoiceData);
       alert('Failed to generate invoice. Please try again.');
     }
   }
+  
 
   startPaymentCheck(paymentHash) {
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes maximum (with 5-second intervals)
+    
     const checkInterval = setInterval(async () => {
       try {
+        attempts++;
         const { paid } = await this.checkPayment(paymentHash);
+        
         if (paid) {
           clearInterval(checkInterval);
           this.handleSuccessfulPayment();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkInterval);
+          this.handleFailedPayment();
         }
       } catch (error) {
         console.error('Error checking payment:', error);
+        clearInterval(checkInterval);
+        this.handleFailedPayment();
       }
     }, 5000);
   }
 
   handleSuccessfulPayment() {
+    if (!this.qrCodeContainer || !this.openWalletButton || !this.tipAmountContainer) {
+      console.error('UI elements not found');
+      return;
+    }
+  
     alert('Payment received! Thank you for your tip.');
     this.qrCodeContainer.style.display = 'none';
     this.openWalletButton.style.display = 'none';
     this.tipAmountContainer.style.display = 'none';
+  }
+
+  handleFailedPayment() {
+    console.error('Payment verification timeout or error');
+    alert('Payment verification failed or timed out. Please try again.');
   }
 
   renderQRCode(paymentRequest) {

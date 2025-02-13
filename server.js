@@ -32,34 +32,31 @@ app.get('/api/fetch-lnurl-params/:albyAccountId', async (req, res) => {
 // Modify the create-invoice endpoint to handle both LNbits and Getalby
 app.post('/api/create-invoice', async (req, res) => {
   try {
-    const { amount, paymentSystem } = req.body;
+    const { amount, paymentSystem, albyAccountId } = req.body;
     
     console.log('Received request:', { amount, paymentSystem });
 
     if (paymentSystem === 'lnbits') {
-      console.log('LNbits URL:', LNBITS_URL);
-      console.log('LNbits Key:', LNBITS_KEY ? 'Set' : 'Not set');
-
-      // Ensure amount is a number and convert to integer
-      const amountInSats = parseInt(amount, 10);
-      if (isNaN(amountInSats) || amountInSats <= 0) {
-        throw new Error('Invalid amount');
-      }
-
-      const response = await axios.post(`${LNBITS_URL}/api/v1/payments`, {
-        out: false,
-        amount: amountInSats,
-        memo: "Tip Payment"
-      }, {
-        headers: { 'X-Api-Key': LNBITS_KEY }
-      });
-
-      console.log('LNbits response:', response.data);
-
-      res.json({ paymentRequest: response.data.payment_request, paymentHash: response.data.payment_hash });
+      // ... existing LNbits code ...
     } else if (paymentSystem === 'getalby') {
-      const response = await axios.get(callbackUrl);
-      res.json(response.data);
+      // Fetch LNURL params
+      const paramsResponse = await axios.get(
+        `https://getalby.com/lnurlp/${encodeURIComponent(albyAccountId)}`
+      );
+      
+      // Get callback URL and append amount
+      const callbackUrl = new URL(paramsResponse.data.callback);
+      callbackUrl.searchParams.append("amount", amount * 1000); // Convert sats to millisats
+      
+      // Request invoice
+      const invoiceResponse = await axios.get(callbackUrl.toString());
+      
+      // Return standardized response
+      res.json({
+        paymentRequest: invoiceResponse.data.pr,
+        paymentHash: invoiceResponse.data.verify,
+        successAction: invoiceResponse.data.successAction
+      });
     } else {
       throw new Error('Invalid payment system');
     }

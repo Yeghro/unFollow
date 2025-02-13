@@ -136,8 +136,9 @@ document.querySelectorAll(".tablink").forEach((tablink) => {
 
 /*  Tip Configuration */
 const lnPay = new SecureLightningPay({
-  paymentSystem: "lnbits",
+  paymentSystem: "getalby", // or 'lnbits' based on config
   apiBaseUrl: '', // Empty string for same-origin requests
+  albyAccountId: "yeghro", // Your Alby username
   tipAmounts: [1000, 5000, 10000, 20000],
   targetElement: document.getElementById("qr-code-container"),
   showTipOptionsButton: document.getElementById("show-tip-options"),
