@@ -107,18 +107,26 @@ export class SecureLightningPay {
   }
 
   displayInvoice(invoiceData) {
+    console.log('Received invoice data:', invoiceData); // Debug log
+    
     if (invoiceData && invoiceData.paymentRequest) {
-      this.renderQRCode(invoiceData.paymentRequest);
-      this.showQRCodeContainer();
-      if (this.openWalletButton) {
-        this.openWalletButton.href = `lightning:${encodeURIComponent(invoiceData.paymentRequest)}`;
-        this.openWalletButton.style.display = "block";
-      } else {
-        console.error('Open Wallet button not found');
-      }
+        this.renderQRCode(invoiceData.paymentRequest);
+        this.showQRCodeContainer();
+        
+        if (this.openWalletButton) {
+            this.openWalletButton.href = `lightning:${invoiceData.paymentRequest}`;
+            this.openWalletButton.style.display = "block";
+        }
+    } else if (invoiceData && invoiceData.payment_request) { // Add this fallback
+        this.renderQRCode(invoiceData.payment_request);
+        this.showQRCodeContainer();
+        
+        if (this.openWalletButton) {
+            this.openWalletButton.href = `lightning:${invoiceData.payment_request}`;
+            this.openWalletButton.style.display = "block";
+        }
     } else {
-      console.error('Invalid invoice data:', invoiceData);
-      alert('Failed to generate invoice. Please try again.');
+        throw new Error(`Invalid invoice data: ${JSON.stringify(invoiceData)}`);
     }
   }
 

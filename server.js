@@ -84,12 +84,22 @@ app.get('/api/check-payment/:paymentHash', async (req, res) => {
     const { paymentHash } = req.params;
     console.log('Checking payment status for hash:', paymentHash);
     
-    const response = await axios.get(`${LNBITS_URL}/api/v1/payments/${paymentHash}`, {
-      headers: { 'X-Api-Key': LNBITS_KEY }
-    });
+    const response = await axios.get(
+      `${LNBITS_URL}/api/v1/payments/${paymentHash}`,
+      {
+        headers: { 
+          'X-Api-Key': LNBITS_KEY,
+          'Accept': 'application/json'
+        }
+      }
+    );
     
-    console.log('Payment status response:', response.data);
-    res.json({ paid: response.data.paid });
+    // Ensure we're sending JSON response
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ 
+      paid: response.data.paid,
+      preimage: response.data.preimage
+    });
   } catch (error) {
     console.error('Error checking payment:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to check payment status' });
