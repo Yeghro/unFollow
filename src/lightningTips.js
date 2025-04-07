@@ -2,19 +2,14 @@ import qrcode from "qrcode-generator";
 
 export class SecureLightningPay {
   constructor(config) {
-    this.apiBaseUrl = config.apiBaseUrl || '';
-    this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
     this.targetElement = config.targetElement;
     this.showTipOptionsButton = config.showTipOptionsButton;
     this.tipAmountContainer = config.tipAmountContainer;
     this.openWalletButton = config.openWalletButton;
+    this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
+    this.paymentSystem = config.paymentSystem || 'lnbits';
 
-    this.paymentSystem = config.paymentSystem;
-    this.albyAccountId = config.albyAccountId;
-    this.amount = config.amount;
-
-    this.initializeUI();``
-
+    this.initializeUI();
   }
 
   async generateQRCode() {
@@ -34,9 +29,17 @@ export class SecureLightningPay {
     switch (this.paymentSystem) {
       case "getalby":
         const lnurlParams = await this.fetchLNURLParams();
-        return await this.requestInvoice(lnurlParams);
+        if (!lnurlParams.callback) {
+          throw new Error("Invalid LNURL params: missing callback URL");
+        }
+        const callbackUrl = new URL(lnurlParams.callback);
+        callbackUrl.searchParams.append("amount", this.amount * 1000);
+        if (lnurlParams.metadata) {
+          callbackUrl.searchParams.append("metadata", lnurlParams.metadata);
+        }
+        return this.createInvoice(callbackUrl.toString());
       case "lnbits":
-        return await this.createInvoice();
+        return this.createInvoice();
       default:
         throw new Error("Invalid payment system configured");
     }
@@ -48,53 +51,6 @@ export class SecureLightningPay {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
-  }
-
-  async requestInvoice(params) {
-    if (!params.callback) {
-      throw new Error("Invalid LNURL params: missing callback URL");
-    }
-    const callbackUrl = new URL(params.callback);
-    callbackUrl.searchParams.append("amount", this.amount * 1000); // Convert sats to millisats
-
-    if (params.metadata) {
-      callbackUrl.searchParams.append("metadata", params.metadata);
-    }
-
-    const response = await fetch('/api/create-invoice', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        paymentSystem: 'getalby', 
-        callbackUrl: callbackUrl.toString() 
-      })
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
-  }
-
-  async createInvoice() {
-    try {
-      const response = await fetch('/api/create-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          paymentSystem: 'lnbits', 
-          amount: this.amount 
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      throw error;
-    }
   }
 
   async checkPayment(paymentHash) {
@@ -127,18 +83,26 @@ export class SecureLightningPay {
   }
 
   async handleTip(amount) {
-    this.amount = parseInt(amount, 10);
-    if (isNaN(this.amount) || this.amount <= 0) {
-      console.error('Invalid amount:', amount);
-      alert('Invalid amount. Please try again.');
-      return;
-    }
     try {
-      const invoiceData = await this.createInvoice();
-      this.displayInvoice(invoiceData);
+      const response = await fetch('/api/create-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          amount,
+          paymentSystem: this.paymentSystem 
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Payment error: ${errorData.error}`);
+      }
+
+      const invoiceData = await response.json();
+      await this.displayInvoice(invoiceData);
+      this.startPaymentCheck(invoiceData.paymentHash);
     } catch (error) {
-      console.error('Error handling tip:', error);
-      alert('Failed to create invoice. Please try again.');
+      this.handleError('Error handling tip:', error);
     }
   }
 
