@@ -89,7 +89,7 @@ export function displayPubkeyInformation(
   nonActivePubkeys.forEach((pubkey) => {
     const listItem = document.createElement("li");
     const link = document.createElement("a");
-    link.href = `https://primal.net/p/${pubkey}`;
+    link.href = `https://njump.me/p/${pubkey}`;
     link.target = "_blank";
     link.textContent = pubkey;
     link.classList.add("pubkey-link");
@@ -132,7 +132,7 @@ export function displayPubkeyInformation(
     inactiveNpubs.forEach((npub) => {
       const listItem = document.createElement("li");
       const link = document.createElement("a");
-      link.href = `https://primal.net/p/${npub}`;
+      link.href = `https://njump.me/${npub}`;
       link.target = "_blank";
       link.textContent = npub;
       link.classList.add("pubkey-link");
