@@ -15,7 +15,7 @@ export function updateUserProfileCard(profile) {
   userName.textContent = profileData.name || "No name provided";
   userPicture.src =
     profileData.picture ||
-    "https://yeghro.site/wp-content/uploads/2024/03/nostr-300x300.webp";
+    "https://yeghro.com/wp-content/uploads/2024/03/nostr-300x300.webp";
   webSiteUrl.innerHTML = profileData.website
     ? `Website: <a href="${profileData.website}" target="_blank">${profileData.website}</a>`
     : "Website: No URL provided";
