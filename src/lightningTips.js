@@ -96,22 +96,17 @@ export class SecureLightningPay {
   }
 
   async createInvoice() {
-    if (this.paymentSystem === 'getalby') {
-      const lnurlParams = await this.fetchLNURLParams();
-      return await this.requestInvoice(lnurlParams);
-    }
-
-    // LNbits invoice creation
-    const response = await fetch(`${this.apiBaseUrl}/api/v1/payments`, {
+    // Don't duplicate GetAlby logic here since getInvoiceData already handles it
+    // LNbits invoice creation using the server
+    const response = await fetch(`${this.apiBaseUrl}/api/create-invoice`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': this.lnbitsWalletId
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        out: false,
         amount: this.amount,
-        memo: 'LNbits Payment'
+        paymentSystem: this.paymentSystem,
+        albyAccountId: this.albyAccountId
       })
     });
 
@@ -126,15 +121,15 @@ export class SecureLightningPay {
 async checkPayment(paymentIdentifier) {
   try {
     if (this.paymentSystem === 'getalby') {
-      // GetAlby verification
+      // For GetAlby, we need to check their verification URL directly
       const response = await fetch(paymentIdentifier);
       if (!response.ok) {
         throw new Error('Failed to verify payment');
       }
       const data = await response.json();
-      return { paid: data.status === 'PAID' }; // Note: Changed from 'OK' to 'PAID'
+      return { paid: data.status === 'PAID' };
     } else {
-      // LNbits verification
+      // For LNbits, use our server API
       const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`);
       if (!response.ok) {
         throw new Error('Failed to check payment status');
@@ -171,7 +166,7 @@ async checkPayment(paymentIdentifier) {
       return;
     }
     try {
-      const invoiceData = await this.createInvoice();
+      const invoiceData = await this.getInvoiceData();
       await this.displayInvoice(invoiceData);
     } catch (error) {
       console.error('Error handling tip:', error);
@@ -254,24 +249,29 @@ async checkPayment(paymentIdentifier) {
   }
 
   renderQRCode(paymentRequest) {
-    this.targetElement.innerHTML = "";
-
-    try {
-      const qr = qrcode(0, "L");
-      qr.addData(paymentRequest);
-      qr.make();
-      const qrCodeImg = qr.createImgTag(5);
-      this.targetElement.innerHTML = qrCodeImg;
-    } catch (error) {
-      this.handleError("Failed to generate QR code", error);
+    if (!this.qrCodeContainer) {
+      console.error('QR code container not found');
       return;
     }
-
-  } 
+    
+    // Clear previous QR code
+    this.qrCodeContainer.innerHTML = '';
+    
+    // Generate QR code
+    const qr = qrcode(0, 'L');
+    qr.addData(paymentRequest);
+    qr.make();
+    
+    // Create QR code image
+    const qrImage = qr.createImgTag(5);
+    this.qrCodeContainer.innerHTML = qrImage;
+  }
 
   showQRCodeContainer() {
-    this.targetElement.style.display = 'block';
-  } 
+    if (this.qrCodeContainer) {
+      this.qrCodeContainer.style.display = 'block';
+    }
+  }
 
   handleError(message, error) {
     console.error(message, error);
