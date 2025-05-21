@@ -5,6 +5,7 @@ echo "Setting up public directory..."
 mkdir -p public
 cp favicon.webp public/
 cp style.css public/
+cp OGimage.webp public/
 
 # Build the frontend with Vite
 echo "Building the frontend..."
