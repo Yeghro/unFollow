@@ -136,10 +136,12 @@ document.querySelectorAll(".tablink").forEach((tablink) => {
 
 /*  Tip Configuration */
 const lnPay = new SecureLightningPay({
-  paymentSystem: "getalby", // or 'lnbits' based on config
+  paymentSystem: import.meta.env.VITE_PAYMENT_SYSTEM || "getalby",
   apiBaseUrl: '', // Empty string for same-origin requests
-  albyAccountId: "yeghro", // Your Alby username
-  tipAmounts: [1000, 5000, 10000, 20000],
+  albyAccountId: import.meta.env.VITE_ALBY_ACCOUNT_ID || "yeghro",
+  tipAmounts: import.meta.env.VITE_TIP_AMOUNTS ? 
+    import.meta.env.VITE_TIP_AMOUNTS.split(',').map(amount => parseInt(amount, 10)) : 
+    [1000, 5000, 10000, 20000],
   targetElement: document.getElementById("qr-code-container"),
   showTipOptionsButton: document.getElementById("show-tip-options"),
   tipAmountContainer: document.getElementById("tip-amount-container"),

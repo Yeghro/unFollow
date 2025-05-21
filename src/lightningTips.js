@@ -278,24 +278,3 @@ async checkPayment(paymentIdentifier) {
     alert(message);
   }
 }
-
-
-// Usage
-// const lnbitsKey = import.meta.env.VITE_LNBITS_INVOICE_KEY;
-
-// const lnPay = new SecureLightningPay({
-//   paymentSystem: "lnbits", // or 'getalby', depending on admin configuration
-//   albyAccountId: "yeghro", // Your Alby account ID (if using Getalby)
-//   lnbitsUrl: "https://lnbits.yeghro.site", // Your LNbits instance URL (if using LNbits)
-//   lnbitsWalletId: lnbitsKey, // Your LNbits wallet ID (if using LNbits)
-//   tipAmounts: [100, 1000, 5000, 10000], // Array of tip amount options in sats
-//   targetElement: document.getElementById("qr-code-container"),
-//   showTipOptionsButton: document.getElementById("show-tip-options"),
-//   tipAmountContainer: document.getElementById("tip-amount-container"),
-//   openWalletButton: document.getElementById("open-wallet"),
-// });
-
-// The click event listener is now set up in the constructor, so you don't need this:
-// document.getElementById("generate-qr").addEventListener("click", () => {
-//   lnPay.generateQRCode();
-// });
