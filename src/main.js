@@ -135,15 +135,31 @@ document.querySelectorAll(".tablink").forEach((tablink) => {
 });
 
 /*  Tip Configuration */
+const paymentSystem = (import.meta.env.VITE_PAYMENT_SYSTEM || "getalby").toLowerCase();
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''; // optional, defaults to same-origin
+
+// UI element IDs can be overridden via env; defaults keep current behavior
+const QR_ID = import.meta.env.VITE_QR_CONTAINER_ID || "qr-code-container";
+const SHOW_TIP_BTN_ID = import.meta.env.VITE_SHOW_TIP_BUTTON_ID || "show-tip-options";
+const TIP_CONTAINER_ID = import.meta.env.VITE_TIP_CONTAINER_ID || "tip-amount-container";
+const WALLET_BTN_ID = import.meta.env.VITE_WALLET_BUTTON_ID || "open-wallet";
+
+// Tip amounts: comma-separated list in VITE_TIP_AMOUNTS, fallback to defaults
+const tipAmounts = import.meta.env.VITE_TIP_AMOUNTS
+  ? import.meta.env.VITE_TIP_AMOUNTS.split(',').map(a => parseInt(a, 10))
+  : [1000, 5000, 10000, 20000];
+
+// Alby account is ONLY needed when using GetAlby
+const albyAccountId = import.meta.env.VITE_ALBY_ACCOUNT_ID || undefined;
+
 const lnPay = new SecureLightningPay({
-  paymentSystem: import.meta.env.VITE_PAYMENT_SYSTEM || "getalby",
-  apiBaseUrl: '', // Empty string for same-origin requests
-  albyAccountId: import.meta.env.VITE_ALBY_ACCOUNT_ID || "yeghro",
-  tipAmounts: import.meta.env.VITE_TIP_AMOUNTS ? 
-    import.meta.env.VITE_TIP_AMOUNTS.split(',').map(amount => parseInt(amount, 10)) : 
-    [1000, 5000, 10000, 20000],
-  targetElement: document.getElementById("qr-code-container"),
-  showTipOptionsButton: document.getElementById("show-tip-options"),
-  tipAmountContainer: document.getElementById("tip-amount-container"),
-  openWalletButton: document.getElementById("open-wallet"),
+  paymentSystem,
+  apiBaseUrl,
+  // Only meaningful for GetAlby; ignored for Coinos/LNbits
+  albyAccountId,
+  tipAmounts,
+  targetElement: document.getElementById(QR_ID),
+  showTipOptionsButton: document.getElementById(SHOW_TIP_BTN_ID),
+  tipAmountContainer: document.getElementById(TIP_CONTAINER_ID),
+  openWalletButton: document.getElementById(WALLET_BTN_ID),
 });

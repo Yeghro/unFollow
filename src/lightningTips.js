@@ -1,6 +1,6 @@
 import qrcode from "qrcode-generator";
 
-// SecureLightningPay class handles Lightning Network payments using either LNbits or GetAlby
+// SecureLightningPay class handles Lightning Network payments using LNbits, GetAlby, or Coinos
 export class SecureLightningPay {
   // Constructor initializes payment configuration
   constructor(config) {
@@ -49,10 +49,16 @@ export class SecureLightningPay {
   async generateQRCode() {
     try {
       const invoiceData = await this.getInvoiceData();
-      if (!invoiceData || !invoiceData.pr) {
+
+      const pr = this.paymentSystem === 'getalby'
+        ? invoiceData?.pr
+        : invoiceData?.paymentRequest;
+
+      if (!pr) {
         throw new Error("Invalid invoice data received");
       }
-      this.renderQRCode(invoiceData.pr);
+
+      this.renderQRCode(pr);
       this.showQRCodeContainer();
     } catch (error) {
       this.handleError("Failed to generate QR code", error);
@@ -63,6 +69,9 @@ export class SecureLightningPay {
     if (this.paymentSystem === 'getalby') {
       const lnurlParams = await this.fetchLNURLParams();
       return await this.requestInvoice(lnurlParams);
+    } else if (this.paymentSystem === 'coinos') {
+      // Use server API for Coinos payments
+      return await this.createInvoice();
     } else {
       return await this.createInvoice();
     }
@@ -96,18 +105,23 @@ export class SecureLightningPay {
   }
 
   async createInvoice() {
-    // Don't duplicate GetAlby logic here since getInvoiceData already handles it
-    // LNbits invoice creation using the server
+    // Create invoice using the server API
+    const requestBody = {
+      amount: this.amount,
+      paymentSystem: this.paymentSystem
+    };
+    
+    // Only include albyAccountId for GetAlby payments
+    if (this.paymentSystem === 'getalby' && this.albyAccountId) {
+      requestBody.albyAccountId = this.albyAccountId;
+    }
+    
     const response = await fetch(`${this.apiBaseUrl}/api/create-invoice`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        amount: this.amount,
-        paymentSystem: this.paymentSystem,
-        albyAccountId: this.albyAccountId
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
@@ -117,7 +131,7 @@ export class SecureLightningPay {
     return await response.json();
   }
 
-// Update payment checking for both systems
+// Update payment checking for all systems
 async checkPayment(paymentIdentifier) {
   try {
     if (this.paymentSystem === 'getalby') {
@@ -128,6 +142,14 @@ async checkPayment(paymentIdentifier) {
       }
       const data = await response.json();
       return { paid: data.status === 'PAID' };
+    } else if (this.paymentSystem === 'coinos') {
+      // For Coinos, use our server API with payment system parameter
+      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}?paymentSystem=coinos`);
+      if (!response.ok) {
+        throw new Error('Failed to check payment status');
+      }
+      const data = await response.json();
+      return { paid: data.paid };
     } else {
       // For LNbits, use our server API
       const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`);
@@ -179,6 +201,8 @@ async checkPayment(paymentIdentifier) {
     
     if (this.paymentSystem === 'getalby') {
       paymentRequest = invoiceData.pr;
+    } else if (this.paymentSystem === 'coinos') {
+      paymentRequest = invoiceData.paymentRequest;
     } else {
       paymentRequest = invoiceData.paymentRequest;
     }
@@ -193,11 +217,12 @@ async checkPayment(paymentIdentifier) {
         console.error('Open Wallet button not found');
       }
       
-      // Start payment check if verify URL is provided (GetAlby)
-      if (invoiceData.verify) {
+      // Start payment check based on payment system
+      if (this.paymentSystem === 'getalby' && invoiceData.verify) {
+        // GetAlby payment check
         this.startPaymentCheck(invoiceData.verify);
       } else if (invoiceData.paymentHash) {
-        // LNbits payment check
+        // LNbits and Coinos payment check
         this.startPaymentCheck(invoiceData.paymentHash);
       }
     } else {
