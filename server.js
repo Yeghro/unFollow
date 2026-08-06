@@ -21,7 +21,9 @@ app.post('/api/create-invoice', rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.headers['cf-connecting-ip'] || ipKeyGenerator(req),
+  // ipKeyGenerator takes an IP string, not the request. Passing `req` returns the
+  // request object itself, which is unique per request, so the limiter never matches.
+  keyGenerator: (req) => req.headers['cf-connecting-ip'] || ipKeyGenerator(req.ip),
 }));
 
 const LNBITS_URL = process.env.LNBITS_URL;
