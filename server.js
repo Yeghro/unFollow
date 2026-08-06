@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1); // trust first proxy (nginx/Cloudflare) for rate-limiting
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(join(__dirname, 'public')));
 
@@ -28,6 +29,7 @@ const COINOS_TOKEN = process.env.COINOS_TOKEN;
 const COINOS_USERNAME = process.env.COINOS_USERNAME;
 const PAYMENT_SYSTEM = process.env.PAYMENT_SYSTEM || 'lnbits';
 const ALBY_ACCOUNT_ID = process.env.ALBY_ACCOUNT_ID;
+const PORT = process.env.PORT || 3210;
 
 // Modify the create-invoice endpoint to handle LNbits, Getalby, and Coinos
 app.post('/api/create-invoice', async (req, res) => {
@@ -134,15 +136,16 @@ app.get('/api/check-payment/:paymentHash', async (req, res) => {
     const { paymentHash } = req.params;
 
     // Validate payment hash format
-    if (!/^[a-f0-9]{64}$/i.test(paymentHash)) {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(paymentHash)) {
       return res.status(400).json({ error: 'Invalid payment hash' });
     }
 
-    const { paymentSystem } = req.query; // legacy param; use env as source of truth
+    // Use env as source of truth (req.query.paymentSystem is legacy)
+    const ps = PAYMENT_SYSTEM;
 
     console.log('Checking payment status for hash:', paymentHash);
 
-    if (paymentSystem === 'coinos') {
+    if (ps === 'coinos') {
       // Check Coinos payment status
       if (!COINOS_TOKEN) {
         return res.status(400).json({ error: 'Coinos API token not configured' });

@@ -153,17 +153,22 @@ export class SecureLightningPay {
   }
 
   async handleTip(amount) {
-    // NOTE: getInvoiceData() reads this.amount, so it must be set before the call.
-    this.amount = parseInt(amount, 10);
-    if (isNaN(this.amount) || this.amount <= 0) {
-      this.handleError('Invalid amount. Please try again.', amount);
-      return;
-    }
+    // Disable tip buttons while a request is in flight
+    const buttons = this.tipAmountContainer.querySelectorAll('.tip-amount-button');
+    buttons.forEach(btn => btn.disabled = true);
+
     try {
+      this.amount = parseInt(amount, 10);
+      if (isNaN(this.amount) || this.amount <= 0) {
+        this.handleError('Invalid amount. Please try again.', amount);
+        return;
+      }
       const invoiceData = await this.getInvoiceData();
       await this.displayInvoice(invoiceData);
     } catch (error) {
       this.handleError('Error handling tip:', error);
+    } finally {
+      buttons.forEach(btn => btn.disabled = false);
     }
   }
 
