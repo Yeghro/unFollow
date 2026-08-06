@@ -54,9 +54,20 @@ app.get('/api/coinos-account', async (req, res) => {
 // Modify the create-invoice endpoint to handle LNbits, Getalby, and Coinos
 app.post('/api/create-invoice', async (req, res) => {
   try {
-    const { amount, paymentSystem, albyAccountId } = req.body;
-    
-    console.log('Received request:', { amount, paymentSystem });
+    const { amount, albyAccountId } = req.body;
+
+    console.log('Received request for invoice creation:', { amount });
+
+    // Validate amount server-side
+    if (!amount || amount < 1000 || amount > 100000) {
+      console.log('Invalid amount:', amount);
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    const paymentSystem = process.env.PAYMENT_SYSTEM || 'lnbits';
+    console.log('Using payment system:', paymentSystem);
+    console.log('LNbits URL:', LNBITS_URL);
+    console.log('LNbits Key:', LNBITS_KEY ? 'Set' : 'Not set');
 
     if (paymentSystem === 'lnbits') {
       const response = await axios.post(
@@ -64,14 +75,18 @@ app.post('/api/create-invoice', async (req, res) => {
         {
           out: false,
           amount: amount,
-          memo: 'LNbits Payment'
+          memo: 'unFollow Tips'
         },
         {
           headers: { 'X-Api-Key': LNBITS_KEY }
         }
       );
 
-      res.json(response.data);
+      // Normalize LNbits' snake_case response to the shape the client expects
+      return res.json({
+        paymentRequest: response.data.payment_request,
+        paymentHash: response.data.payment_hash
+      });
     } else if (paymentSystem === 'getalby') {
       // Fetch LNURL params
       const paramsResponse = await axios.get(
@@ -125,8 +140,11 @@ app.post('/api/create-invoice', async (req, res) => {
       throw new Error('Invalid payment system');
     }
   } catch (error) {
-    console.error('Error creating invoice:', error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Failed to create invoice', details: error.message });
+    console.error('Error creating invoice:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Failed to create invoice', 
+      details: error.message 
+    });
   }
 });
 
@@ -134,6 +152,8 @@ app.get('/api/check-payment/:paymentHash', async (req, res) => {
   try {
     const { paymentHash } = req.params;
     const { paymentSystem } = req.query; // Add payment system parameter
+
+    console.log('Checking payment status for hash:', paymentHash);
 
     if (paymentSystem === 'coinos') {
       // Check Coinos payment status
@@ -150,16 +170,29 @@ app.get('/api/check-payment/:paymentHash', async (req, res) => {
 
       // Coinos returns received amount, check if it matches the expected amount
       const paid = response.data.received >= response.data.amount;
+      res.setHeader('Content-Type', 'application/json');
       res.json({ paid, received: response.data.received, expected: response.data.amount });
     } else {
       // Default to LNbits for backward compatibility
-      const response = await axios.get(`${LNBITS_URL}/api/v1/payments/${paymentHash}`, {
-        headers: { 'X-Api-Key': LNBITS_KEY }
+      const response = await axios.get(
+        `${LNBITS_URL}/api/v1/payments/${paymentHash}`,
+        {
+          headers: {
+            'X-Api-Key': LNBITS_KEY,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      // Ensure we're sending JSON response
+      res.setHeader('Content-Type', 'application/json');
+      res.json({
+        paid: response.data.paid,
+        preimage: response.data.preimage
       });
-      res.json({ paid: response.data.paid });
     }
   } catch (error) {
-    console.error('Error checking payment:', error);
+    console.error('Error checking payment:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to check payment status' });
   }
 });

@@ -8,22 +8,19 @@ export class SecureLightningPay {
     this.apiBaseUrl = config.apiBaseUrl || '';
     // Available tip amounts in sats
     this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
+
+    // Payment system configuration (lnbits, getalby, or coinos)
+    this.paymentSystem = config.paymentSystem || 'lnbits';
+    this.albyAccountId = config.albyAccountId;
+    this.amount = config.amount;
+
     // DOM elements for UI interaction
     this.targetElement = config.targetElement;
+    this.qrCodeContainer = config.targetElement;
     this.showTipOptionsButton = config.showTipOptionsButton;
     this.tipAmountContainer = config.tipAmountContainer;
     this.openWalletButton = config.openWalletButton;
 
-    // Payment system configuration (lnbits or getalby)
-    this.paymentSystem = config.paymentSystem;
-    this.albyAccountId = config.albyAccountId;
-    this.amount = config.amount;
-
-    // Store UI elements as class properties
-    this.qrCodeContainer = config.targetElement;
-    this.openWalletButton = config.openWalletButton;
-    this.tipAmountContainer = config.tipAmountContainer;
-    
     if (!this.qrCodeContainer || !this.openWalletButton || !this.tipAmountContainer) {
       throw new Error('Required UI elements not provided');
     }
@@ -69,11 +66,11 @@ export class SecureLightningPay {
     if (this.paymentSystem === 'getalby') {
       const lnurlParams = await this.fetchLNURLParams();
       return await this.requestInvoice(lnurlParams);
-    } else if (this.paymentSystem === 'coinos') {
-      // Use server API for Coinos payments
+    } else if (this.paymentSystem === 'coinos' || this.paymentSystem === 'lnbits') {
+      // Both go through our own server API
       return await this.createInvoice();
     } else {
-      return await this.createInvoice();
+      throw new Error('Invalid payment system configured');
     }
   }
 
@@ -181,32 +178,31 @@ async checkPayment(paymentIdentifier) {
   }
 
   async handleTip(amount) {
+    // NOTE: getInvoiceData() reads this.amount, so it must be set before the call.
     this.amount = parseInt(amount, 10);
     if (isNaN(this.amount) || this.amount <= 0) {
-      console.error('Invalid amount:', amount);
-      alert('Invalid amount. Please try again.');
+      this.handleError('Invalid amount. Please try again.', amount);
       return;
     }
     try {
       const invoiceData = await this.getInvoiceData();
       await this.displayInvoice(invoiceData);
     } catch (error) {
-      console.error('Error handling tip:', error);
-      alert('Failed to create invoice. Please try again.');
+      this.handleError('Error handling tip:', error);
     }
   }
 
   displayInvoice(invoiceData) {
     let paymentRequest;
-    
+
     if (this.paymentSystem === 'getalby') {
-      paymentRequest = invoiceData.pr;
-    } else if (this.paymentSystem === 'coinos') {
-      paymentRequest = invoiceData.paymentRequest;
+      paymentRequest = invoiceData?.pr;
     } else {
-      paymentRequest = invoiceData.paymentRequest;
+      // LNbits and Coinos both come back normalized from our server,
+      // but keep the snake_case fallback for any unnormalized response.
+      paymentRequest = invoiceData?.paymentRequest || invoiceData?.payment_request;
     }
-  
+
     if (paymentRequest) {
       this.renderQRCode(paymentRequest);
       this.showQRCodeContainer();
@@ -226,8 +222,7 @@ async checkPayment(paymentIdentifier) {
         this.startPaymentCheck(invoiceData.paymentHash);
       }
     } else {
-      console.error('Invalid invoice data:', invoiceData);
-      alert('Failed to generate invoice. Please try again.');
+        throw new Error(`Invalid invoice data: ${JSON.stringify(invoiceData)}`);
     }
   }
   
