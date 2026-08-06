@@ -44,12 +44,11 @@ app.post('/api/create-invoice', async (req, res) => {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
-    const paymentSystem = process.env.PAYMENT_SYSTEM || 'lnbits';
-    console.log('Using payment system:', paymentSystem);
-    console.log('LNbits URL:', LNBITS_URL);
-    console.log('LNbits Key:', LNBITS_KEY ? 'Set' : 'Not set');
+    console.log('Using payment system:', PAYMENT_SYSTEM);
 
-    if (paymentSystem === 'lnbits') {
+    if (PAYMENT_SYSTEM === 'lnbits') {
+      console.log('LNbits URL:', LNBITS_URL);
+      console.log('LNbits Key:', LNBITS_KEY ? 'Set' : 'Not set');
       const response = await axios.post(
         `${LNBITS_URL}/api/v1/payments`,
         {
@@ -67,7 +66,7 @@ app.post('/api/create-invoice', async (req, res) => {
         paymentRequest: response.data.payment_request,
         paymentHash: response.data.payment_hash
       });
-    } else if (paymentSystem === 'getalby') {
+    } else if (PAYMENT_SYSTEM === 'getalby') {
       // Fetch LNURL params
       const paramsResponse = await axios.get(
         `https://getalby.com/lnurlp/${encodeURIComponent(ALBY_ACCOUNT_ID)}`
@@ -86,7 +85,7 @@ app.post('/api/create-invoice', async (req, res) => {
         paymentHash: invoiceResponse.data.verify,
         successAction: invoiceResponse.data.successAction
       });
-    } else if (paymentSystem === 'coinos') {
+    } else if (PAYMENT_SYSTEM === 'coinos') {
       // Create Coinos lightning invoice
       if (!COINOS_TOKEN) {
         throw new Error('Coinos API token not configured');
