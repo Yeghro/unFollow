@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
@@ -10,51 +11,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 app.use(express.static(join(__dirname, 'public')));
+
+// Rate limit invoice creation — 10 requests per minute per IP
+app.post('/api/create-invoice', rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+}));
 
 const LNBITS_URL = process.env.LNBITS_URL;
 const LNBITS_KEY = process.env.LNBITS_KEY;
-const COINOS_TOKEN = process.env.COINOS_TOKEN; // Add Coinos API token
-
-// Add this new endpoint for Getalby support
-app.get('/api/fetch-lnurl-params/:albyAccountId', async (req, res) => {
-  try {
-    const { albyAccountId } = req.params;
-    const url = `https://getalby.com/lnurlp/${encodeURIComponent(albyAccountId)}`;
-    const response = await axios.get(url);
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error fetching LNURL params:', error);
-    res.status(500).json({ error: 'Failed to fetch LNURL params' });
-  }
-});
-
-// Add new endpoint for Coinos account details
-app.get('/api/coinos-account', async (req, res) => {
-  try {
-    if (!COINOS_TOKEN) {
-      return res.status(400).json({ error: 'Coinos API token not configured' });
-    }
-
-    const response = await axios.get('https://coinos.io/api/me', {
-      headers: {
-        'Authorization': `Bearer ${COINOS_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    res.json(response.data);
-  } catch (error) {
-    console.error('Error fetching Coinos account:', error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Failed to fetch Coinos account details' });
-  }
-});
+const COINOS_TOKEN = process.env.COINOS_TOKEN;
+const COINOS_USERNAME = process.env.COINOS_USERNAME;
+const PAYMENT_SYSTEM = process.env.PAYMENT_SYSTEM || 'lnbits';
+const ALBY_ACCOUNT_ID = process.env.ALBY_ACCOUNT_ID;
 
 // Modify the create-invoice endpoint to handle LNbits, Getalby, and Coinos
 app.post('/api/create-invoice', async (req, res) => {
   try {
-    const { amount, albyAccountId } = req.body;
+    const { amount } = req.body;
 
     console.log('Received request for invoice creation:', { amount });
 
@@ -90,7 +68,7 @@ app.post('/api/create-invoice', async (req, res) => {
     } else if (paymentSystem === 'getalby') {
       // Fetch LNURL params
       const paramsResponse = await axios.get(
-        `https://getalby.com/lnurlp/${encodeURIComponent(albyAccountId)}`
+        `https://getalby.com/lnurlp/${encodeURIComponent(ALBY_ACCOUNT_ID)}`
       );
       
       // Get callback URL and append amount
@@ -111,6 +89,9 @@ app.post('/api/create-invoice', async (req, res) => {
       if (!COINOS_TOKEN) {
         throw new Error('Coinos API token not configured');
       }
+      if (!COINOS_USERNAME) {
+        throw new Error('Coinos username not configured');
+      }
 
       const response = await axios.post(
         'https://coinos.io/api/invoice',
@@ -118,7 +99,8 @@ app.post('/api/create-invoice', async (req, res) => {
           invoice: {
             amount: amount,
             type: 'lightning'
-          }
+          },
+          user: { username: COINOS_USERNAME }
         },
         {
           headers: {
@@ -142,8 +124,7 @@ app.post('/api/create-invoice', async (req, res) => {
   } catch (error) {
     console.error('Error creating invoice:', error.response?.data || error.message);
     res.status(500).json({ 
-      error: 'Failed to create invoice', 
-      details: error.message 
+      error: 'Failed to create invoice'
     });
   }
 });
@@ -151,7 +132,13 @@ app.post('/api/create-invoice', async (req, res) => {
 app.get('/api/check-payment/:paymentHash', async (req, res) => {
   try {
     const { paymentHash } = req.params;
-    const { paymentSystem } = req.query; // Add payment system parameter
+
+    // Validate payment hash format
+    if (!/^[a-f0-9]{64}$/i.test(paymentHash)) {
+      return res.status(400).json({ error: 'Invalid payment hash' });
+    }
+
+    const { paymentSystem } = req.query; // legacy param; use env as source of truth
 
     console.log('Checking payment status for hash:', paymentHash);
 
@@ -169,7 +156,9 @@ app.get('/api/check-payment/:paymentHash', async (req, res) => {
       });
 
       // Coinos returns received amount, check if it matches the expected amount
-      const paid = response.data.received >= response.data.amount;
+      const received = Number(response.data.received);
+      const expected = Number(response.data.amount);
+      const paid = Number.isFinite(received) && Number.isFinite(expected) && expected > 0 && received >= expected;
       res.setHeader('Content-Type', 'application/json');
       res.json({ paid, received: response.data.received, expected: response.data.amount });
     } else {
@@ -197,5 +186,4 @@ app.get('/api/check-payment/:paymentHash', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3210;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

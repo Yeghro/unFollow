@@ -30,11 +30,10 @@ export class SecureLightningPay {
   }
 
   // Main payment flow methods:
-  // 1. generateQRCode: Creates QR code for payment
-  // 2. getInvoiceData: Gets invoice based on payment system
-  // 3. createInvoice: Creates LNbits invoice
-  // 4. requestInvoice: Handles GetAlby invoice request
-  // 5. checkPayment: Monitors payment status
+  // 1. getInvoiceData: Gets invoice based on payment system
+  // 2. createInvoice: Creates invoice via server API
+  // 3. requestInvoice: Handles GetAlby invoice request
+  // 4. checkPayment: Monitors payment status
 
   // Helper methods for UI handling:
   // - initializeUI: Sets up event listeners
@@ -42,25 +41,6 @@ export class SecureLightningPay {
   // - handleTip: Processes tip amount selection
   // - displayInvoice: Shows invoice QR code
   // - renderQRCode: Generates QR code image
-
-  async generateQRCode() {
-    try {
-      const invoiceData = await this.getInvoiceData();
-
-      const pr = this.paymentSystem === 'getalby'
-        ? invoiceData?.pr
-        : invoiceData?.paymentRequest;
-
-      if (!pr) {
-        throw new Error("Invalid invoice data received");
-      }
-
-      this.renderQRCode(pr);
-      this.showQRCodeContainer();
-    } catch (error) {
-      this.handleError("Failed to generate QR code", error);
-    }
-  }
 
   async getInvoiceData() {
     if (this.paymentSystem === 'getalby') {
@@ -103,16 +83,11 @@ export class SecureLightningPay {
 
   async createInvoice() {
     // Create invoice using the server API
+    // Server now reads paymentSystem and albyAccountId from env
     const requestBody = {
-      amount: this.amount,
-      paymentSystem: this.paymentSystem
+      amount: this.amount
     };
-    
-    // Only include albyAccountId for GetAlby payments
-    if (this.paymentSystem === 'getalby' && this.albyAccountId) {
-      requestBody.albyAccountId = this.albyAccountId;
-    }
-    
+
     const response = await fetch(`${this.apiBaseUrl}/api/create-invoice`, {
       method: 'POST',
       headers: {
@@ -128,8 +103,8 @@ export class SecureLightningPay {
     return await response.json();
   }
 
-// Update payment checking for all systems
-async checkPayment(paymentIdentifier) {
+ // Update payment checking for all systems
+  async checkPayment(paymentIdentifier) {
   try {
     if (this.paymentSystem === 'getalby') {
       // For GetAlby, we need to check their verification URL directly
@@ -140,8 +115,8 @@ async checkPayment(paymentIdentifier) {
       const data = await response.json();
       return { paid: data.status === 'PAID' };
     } else if (this.paymentSystem === 'coinos') {
-      // For Coinos, use our server API with payment system parameter
-      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}?paymentSystem=coinos`);
+      // For Coinos, use our server API (server reads paymentSystem from env)
+      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`);
       if (!response.ok) {
         throw new Error('Failed to check payment status');
       }
@@ -207,7 +182,7 @@ async checkPayment(paymentIdentifier) {
       this.renderQRCode(paymentRequest);
       this.showQRCodeContainer();
       if (this.openWalletButton) {
-        this.openWalletButton.href = `lightning:${encodeURIComponent(paymentRequest)}`;
+        this.openWalletButton.href = `lightning:${paymentRequest}`;
         this.openWalletButton.style.display = "block";
       } else {
         console.error('Open Wallet button not found');
@@ -228,27 +203,41 @@ async checkPayment(paymentIdentifier) {
   
 
   startPaymentCheck(paymentHash) {
+    // Cancel any previous poller to avoid stacking
+    if (this._pollInterval) {
+      clearInterval(this._pollInterval);
+    }
     let attempts = 0;
+    let consecutiveErrors = 0;
     const maxAttempts = 60; // 5 minutes maximum (with 5-second intervals)
-    
+    const maxConsecutiveErrors = 3;
+
     const checkInterval = setInterval(async () => {
       try {
         attempts++;
         const { paid } = await this.checkPayment(paymentHash);
-        
+
         if (paid) {
           clearInterval(checkInterval);
+          this._pollInterval = null;
           this.handleSuccessfulPayment();
         } else if (attempts >= maxAttempts) {
           clearInterval(checkInterval);
+          this._pollInterval = null;
           this.handleFailedPayment();
         }
       } catch (error) {
         console.error('Error checking payment:', error);
-        clearInterval(checkInterval);
-        this.handleFailedPayment();
+        consecutiveErrors++;
+        if (consecutiveErrors >= maxConsecutiveErrors) {
+          clearInterval(checkInterval);
+          this._pollInterval = null;
+          this.handleFailedPayment();
+        }
       }
     }, 5000);
+
+    this._pollInterval = checkInterval;
   }
 
   handleSuccessfulPayment() {
