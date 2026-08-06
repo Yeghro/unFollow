@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-app.set('trust proxy', 1); // trust first proxy (nginx/Cloudflare) for rate-limiting
+app.set('trust proxy', 2); // trust first proxy (nginx/Cloudflare) for rate-limiting
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(join(__dirname, 'public')));
 
@@ -114,8 +114,7 @@ app.post('/api/create-invoice', async (req, res) => {
       // Return standardized response for Coinos
       res.json({
         paymentRequest: response.data.text, // Coinos returns payment request in 'text' field
-        paymentHash: response.data.hash,    // Coinos uses 'hash' field for payment hash
-        uid: response.data.uid,             // Coinos unique identifier
+        paymentHash: response.data.id,       // Coinos indexes invoice:<uuid>
         amount: response.data.amount,
         currency: response.data.currency
       });
