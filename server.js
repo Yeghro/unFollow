@@ -11,16 +11,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-app.set('trust proxy', 2); // trust first proxy (nginx/Cloudflare) for rate-limiting
+app.set('trust proxy', 1); // trust nginx for CF-Connecting-IP header
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(join(__dirname, 'public')));
 
-// Rate limit invoice creation — 10 requests per minute per IP
+// Rate limit invoice creation — 10 requests per minute per visitor
 app.post('/api/create-invoice', rateLimit({
   windowMs: 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => req.headers['cf-connecting-ip'] || req.ip,
 }));
 
 const LNBITS_URL = process.env.LNBITS_URL;
