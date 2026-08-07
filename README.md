@@ -7,78 +7,69 @@ This project supports multiple Lightning Network payment systems for receiving t
 ### 1. LNbits
 - Traditional LNbits server integration
 - Requires LNbits URL and API key
+- Set `PAYMENT_SYSTEM=lnbits` in `.env`
 
 ### 2. GetAlby
 - LNURL-p integration with GetAlby
 - Requires Alby account ID
+- Set `PAYMENT_SYSTEM=getalby` in `.env`
 
-### 3. Coinos.io (NEW!)
+### 3. Coinos.io
 - REST API integration with Coinos.io
-- Requires Coinos API token
+- Requires Coinos API token and username
+- Set `PAYMENT_SYSTEM=coinos` in `.env`
 
 ## Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+See [.env.example](.env.example) for the full list. Key variables:
 
-```bash
-# LNbits Configuration
-LNBITS_URL=https://your-lnbits-instance.com
-LNBITS_KEY=your-lnbits-api-key
+- `PAYMENT_SYSTEM` — server-side payment provider selection (default: `lnbits`)
+- `PORT` — server listen port (default: `3210`)
+- `COINOS_TOKEN` / `COINOS_USERNAME` — required when `PAYMENT_SYSTEM=coinos`
+- `LNBITS_URL` / `LNBITS_KEY` — required when `PAYMENT_SYSTEM=lnbits`
+- `ALBY_ACCOUNT_ID` — required when `PAYMENT_SYSTEM=getalby`
 
-# Coinos.io Configuration
-COINOS_TOKEN=your-coinos-api-token
-
-# Frontend Configuration (Vite environment variables)
-VITE_PAYMENT_SYSTEM=getalby
-VITE_ALBY_ACCOUNT_ID=your-alby-account-id  # Only needed for GetAlby payments
-VITE_TIP_AMOUNTS=1000,5000,10000,20000
-
-# Server Configuration
-PORT=3210
-```
+Client-side variables are prefixed with `VITE_` and are baked into the build output at compile time.
 
 ## Coinos.io Setup
 
-1. **Get API Token**: 
+1. **Get API Token**:
    - Sign up at https://coinos.io
    - Go to your account settings to get your API token
    - Or use the `/login` endpoint to authenticate
 
 2. **Configure Environment**:
-   - Add your Coinos API token to the `.env` file
-   - Set `VITE_PAYMENT_SYSTEM=coinos` to use Coinos as the default
-   - **Note**: Coinos.io uses API tokens, not account IDs like GetAlby
+   - Add your `COINOS_TOKEN` and `COINOS_USERNAME` to `.env`
+   - Set `PAYMENT_SYSTEM=coinos` (server-side) and `VITE_PAYMENT_SYSTEM=coinos` (client-side)
+   - **Note**: Coinos.io uses an API token for auth, and a username in the invoice request body
 
 3. **API Endpoints**:
-   - `/api/coinos-account` - Get account details and balance
-   - `/api/create-invoice` - Create lightning invoices
-   - `/api/check-payment/:hash?paymentSystem=coinos` - Check payment status
+   - `POST /api/create-invoice` — Create a lightning invoice (body: `{ amount }`)
+   - `GET /api/check-payment/:id` — Check payment status, where `:id` is the `id` field from the `create-invoice` response — the coinos invoice UUID (not a payment hash)
 
 ## Account ID vs API Token
 
-- **GetAlby**: Uses an account ID (like "yeghro") for LNURL-p integration
-- **Coinos.io**: Uses an API token for REST API authentication
+- **GetAlby**: Uses an account ID (e.g. `your_alby_account_id`) for LNURL-p integration
+- **Coinos.io**: Uses an API token for auth, and a username in the invoice body
 - **LNbits**: Uses an API key for server authentication
-
-The `VITE_ALBY_ACCOUNT_ID` environment variable is only used when `VITE_PAYMENT_SYSTEM=getalby`.
 
 ## Payment System Selection
 
-The frontend can be configured to use any of the three payment systems:
+The server reads `PAYMENT_SYSTEM` at runtime. The client reads `VITE_PAYMENT_SYSTEM` at build time — both must agree, and changing `VITE_PAYMENT_SYSTEM` requires a rebuild (`npm run build`) to take effect on the frontend.
 
-- `getalby` - Uses GetAlby LNURL-p
-- `lnbits` - Uses LNbits server
-- `coinos` - Uses Coinos.io REST API
+- `getalby` — Uses GetAlby LNURL-p
+- `lnbits` — Uses LNbits server
+- `coinos` — Uses Coinos.io REST API
 
 ## Testing
 
 To test the Coinos integration:
 
-1. Set up your environment variables
+1. Set `PAYMENT_SYSTEM=coinos`, `COINOS_TOKEN`, and `COINOS_USERNAME` in `.env`
 2. Start the server: `node server.js`
 3. Open the application in your browser
 4. Try creating a tip using the Coinos payment system
-5. Check the payment status using the Coinos API
+5. Check payment status using `GET /api/check-payment/:id` with the `id` from the create response
 
 ## API Documentation
 
