@@ -9,12 +9,7 @@ This project supports multiple Lightning Network payment systems for receiving t
 - Requires LNbits URL and API key
 - Set `PAYMENT_SYSTEM=lnbits` in `.env`
 
-### 2. GetAlby
-- LNURL-p integration with GetAlby
-- Requires Alby account ID
-- Set `PAYMENT_SYSTEM=getalby` in `.env`
-
-### 3. Coinos.io
+### 2. Coinos.io
 - REST API integration with Coinos.io
 - Requires Coinos API token and username
 - Set `PAYMENT_SYSTEM=coinos` in `.env`
@@ -23,13 +18,12 @@ This project supports multiple Lightning Network payment systems for receiving t
 
 See [.env.example](.env.example) for the full list. Key variables:
 
-- `PAYMENT_SYSTEM` — server-side payment provider selection (default: `lnbits`)
+- `PAYMENT_SYSTEM` — server-side payment provider selection (default: `coinos`)
 - `PORT` — server listen port (default: `3210`)
 - `COINOS_TOKEN` / `COINOS_USERNAME` — required when `PAYMENT_SYSTEM=coinos`
 - `LNBITS_URL` / `LNBITS_KEY` — required when `PAYMENT_SYSTEM=lnbits`
-- `ALBY_ACCOUNT_ID` — required when `PAYMENT_SYSTEM=getalby`
 
-Client-side variables are prefixed with `VITE_` and are baked into the build output at compile time.
+All payment system configuration is server-side. The client always calls the local API; no payment choice is baked into the frontend build.
 
 ## Coinos.io Setup
 
@@ -40,7 +34,7 @@ Client-side variables are prefixed with `VITE_` and are baked into the build out
 
 2. **Configure Environment**:
    - Add your `COINOS_TOKEN` and `COINOS_USERNAME` to `.env`
-   - Set `PAYMENT_SYSTEM=coinos` (server-side) and `VITE_PAYMENT_SYSTEM=coinos` (client-side)
+   - Set `PAYMENT_SYSTEM=coinos` in `.env`
    - **Note**: Coinos.io uses an API token for auth, and a username in the invoice request body
 
 3. **API Endpoints**:
@@ -49,15 +43,13 @@ Client-side variables are prefixed with `VITE_` and are baked into the build out
 
 ## Account ID vs API Token
 
-- **GetAlby**: Uses an account ID (e.g. `your_alby_account_id`) for LNURL-p integration
 - **Coinos.io**: Uses an API token for auth, and a username in the invoice body
 - **LNbits**: Uses an API key for server authentication
 
 ## Payment System Selection
 
-The server reads `PAYMENT_SYSTEM` at runtime. The client reads `VITE_PAYMENT_SYSTEM` at build time — both must agree, and changing `VITE_PAYMENT_SYSTEM` requires a rebuild (`npm run build`) to take effect on the frontend.
+The server reads `PAYMENT_SYSTEM` at runtime. There is no client-side payment system variable — the frontend always calls the local server API (`/api/create-invoice`). Changing `PAYMENT_SYSTEM` requires no rebuild.
 
-- `getalby` — Uses GetAlby LNURL-p
 - `lnbits` — Uses LNbits server
 - `coinos` — Uses Coinos.io REST API
 
@@ -68,7 +60,7 @@ To test the Coinos integration:
 1. Set `PAYMENT_SYSTEM=coinos`, `COINOS_TOKEN`, and `COINOS_USERNAME` in `.env`
 2. Start the server: `node server.js`
 3. Open the application in your browser
-4. Try creating a tip using the Coinos payment system
+4. Try creating a tip — the client will call `/api/create-invoice` and display a Lightning invoice QR
 5. Check payment status using `GET /api/check-payment/:id` with the `id` from the create response
 
 ## API Documentation

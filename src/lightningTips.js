@@ -1,6 +1,6 @@
 import qrcode from "qrcode-generator";
 
-// SecureLightningPay class handles Lightning Network payments using LNbits, GetAlby, or Coinos
+// SecureLightningPay class handles Lightning Network payments via the local server API
 export class SecureLightningPay {
   // Constructor initializes payment configuration
   constructor(config) {
@@ -8,10 +8,6 @@ export class SecureLightningPay {
     this.apiBaseUrl = config.apiBaseUrl || '';
     // Available tip amounts in sats
     this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
-
-    // Payment system configuration (lnbits, getalby, or coinos)
-    this.paymentSystem = config.paymentSystem || 'lnbits';
-    this.albyAccountId = config.albyAccountId;
     this.amount = config.amount;
 
     // DOM elements for UI interaction
@@ -30,10 +26,9 @@ export class SecureLightningPay {
   }
 
   // Main payment flow methods:
-  // 1. getInvoiceData: Gets invoice based on payment system
+  // 1. getInvoiceData: Gets invoice via server API
   // 2. createInvoice: Creates invoice via server API
-  // 3. requestInvoice: Handles GetAlby invoice request
-  // 4. checkPayment: Monitors payment status
+  // 3. checkPayment: Monitors payment status via server API
 
   // Helper methods for UI handling:
   // - initializeUI: Sets up event listeners
@@ -43,47 +38,11 @@ export class SecureLightningPay {
   // - renderQRCode: Generates QR code image
 
   async getInvoiceData() {
-    if (this.paymentSystem === 'getalby') {
-      const lnurlParams = await this.fetchLNURLParams();
-      return await this.requestInvoice(lnurlParams);
-    } else if (this.paymentSystem === 'coinos' || this.paymentSystem === 'lnbits') {
-      // Both go through our own server API
-      return await this.createInvoice();
-    } else {
-      throw new Error('Invalid payment system configured');
-    }
-  }
-
-  async fetchLNURLParams() {
-    const url = `https://getalby.com/lnurlp/${this.albyAccountId}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch LNURL params: ${response.status}`);
-    }
-    return await response.json();
-  }
-
-  async requestInvoice(params) {
-    if (!params.callback) {
-      throw new Error("Invalid LNURL params: missing callback URL");
-    }
-    const callbackUrl = new URL(params.callback);
-    callbackUrl.searchParams.append("amount", this.amount * 1000); // Convert sats to millisats
-
-    if (params.metadata) {
-      callbackUrl.searchParams.append("metadata", params.metadata);
-    }
-
-    const response = await fetch(callbackUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to request invoice: ${response.status}`);
-    }
-    return await response.json();
+    return await this.createInvoice();
   }
 
   async createInvoice() {
     // Create invoice using the server API
-    // Server now reads paymentSystem and albyAccountId from env
     const requestBody = {
       amount: this.amount
     };
@@ -103,42 +62,23 @@ export class SecureLightningPay {
     return await response.json();
   }
 
- // Update payment checking for all systems
   async checkPayment(paymentIdentifier) {
-  try {
-    if (this.paymentSystem === 'getalby') {
-      // For GetAlby, we need to check their verification URL directly
-      const response = await fetch(paymentIdentifier);
-      if (!response.ok) {
-        throw new Error('Failed to verify payment');
-      }
-      const data = await response.json();
-      return { paid: data.status === 'PAID' };
-    } else if (this.paymentSystem === 'coinos') {
-      // For Coinos, use our server API (server reads paymentSystem from env)
+    try {
       const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`);
       if (!response.ok) {
-        throw new Error('Failed to check payment status');
+        throw new Error(`Failed to check payment status: ${response.status}`);
       }
       const data = await response.json();
       return { paid: data.paid };
-    } else {
-      // For LNbits, use our server API
-      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`);
-      if (!response.ok) {
-        throw new Error('Failed to check payment status');
-      }
-      const data = await response.json();
-      return { paid: data.paid };
+    } catch (error) {
+      console.error('Error checking payment:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Error checking payment:', error);
-    return { paid: false };
   }
-}
+
   initializeUI() {
     this.showTipOptionsButton.addEventListener('click', () => this.showTipOptions());
-    this.tipAmountContainer.innerHTML = this.tipAmounts.map(amount => 
+    this.tipAmountContainer.innerHTML = this.tipAmounts.map(amount =>
       `<button class="tip-amount-button" data-amount="${amount}">${amount} sats</button>`
     ).join('');
     this.tipAmountContainer.addEventListener('click', (e) => {
@@ -175,13 +115,8 @@ export class SecureLightningPay {
   displayInvoice(invoiceData) {
     let paymentRequest;
 
-    if (this.paymentSystem === 'getalby') {
-      paymentRequest = invoiceData?.pr;
-    } else {
-      // LNbits and Coinos both come back normalized from our server,
-      // but keep the snake_case fallback for any unnormalized response.
-      paymentRequest = invoiceData?.paymentRequest || invoiceData?.payment_request;
-    }
+    // Both LNbits and Coinos come back normalized from our server
+    paymentRequest = invoiceData?.paymentRequest || invoiceData?.payment_request;
 
     if (paymentRequest) {
       this.renderQRCode(paymentRequest);
@@ -192,20 +127,15 @@ export class SecureLightningPay {
       } else {
         console.error('Open Wallet button not found');
       }
-      
-      // Start payment check based on payment system
-      if (this.paymentSystem === 'getalby' && invoiceData.verify) {
-        // GetAlby payment check
-        this.startPaymentCheck(invoiceData.verify);
-      } else if (invoiceData.paymentHash) {
-        // LNbits and Coinos payment check
+
+      // Start payment check
+      if (invoiceData.paymentHash) {
         this.startPaymentCheck(invoiceData.paymentHash);
       }
     } else {
         throw new Error(`Invalid invoice data: ${JSON.stringify(invoiceData)}`);
     }
   }
-  
 
   startPaymentCheck(paymentHash) {
     // Cancel any previous poller to avoid stacking
@@ -250,7 +180,7 @@ export class SecureLightningPay {
       console.error('UI elements not found');
       return;
     }
-  
+
     alert('Payment received! Thank you for your tip.');
     this.qrCodeContainer.style.display = 'none';
     this.openWalletButton.style.display = 'none';
@@ -267,15 +197,15 @@ export class SecureLightningPay {
       console.error('QR code container not found');
       return;
     }
-    
+
     // Clear previous QR code
     this.qrCodeContainer.innerHTML = '';
-    
+
     // Generate QR code
     const qr = qrcode(0, 'L');
     qr.addData(paymentRequest);
     qr.make();
-    
+
     // Create QR code image
     const qrImage = qr.createImgTag(5);
     this.qrCodeContainer.innerHTML = qrImage;

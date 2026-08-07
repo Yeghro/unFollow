@@ -30,11 +30,10 @@ const LNBITS_URL = process.env.LNBITS_URL;
 const LNBITS_KEY = process.env.LNBITS_KEY;
 const COINOS_TOKEN = process.env.COINOS_TOKEN;
 const COINOS_USERNAME = process.env.COINOS_USERNAME;
-const PAYMENT_SYSTEM = process.env.PAYMENT_SYSTEM || 'lnbits';
-const ALBY_ACCOUNT_ID = process.env.ALBY_ACCOUNT_ID;
+const PAYMENT_SYSTEM = process.env.PAYMENT_SYSTEM || 'coinos';
 const PORT = process.env.PORT || 3210;
 
-// Modify the create-invoice endpoint to handle LNbits, Getalby, and Coinos
+// Modify the create-invoice endpoint to handle LNbits and Coinos
 app.post('/api/create-invoice', async (req, res) => {
   try {
     const { amount } = req.body;
@@ -69,25 +68,6 @@ app.post('/api/create-invoice', async (req, res) => {
         paymentRequest: response.data.payment_request,
         paymentHash: response.data.payment_hash
       });
-    } else if (PAYMENT_SYSTEM === 'getalby') {
-      // Fetch LNURL params
-      const paramsResponse = await axios.get(
-        `https://getalby.com/lnurlp/${encodeURIComponent(ALBY_ACCOUNT_ID)}`
-      );
-      
-      // Get callback URL and append amount
-      const callbackUrl = new URL(paramsResponse.data.callback);
-      callbackUrl.searchParams.append("amount", amount * 1000); // Convert sats to millisats
-      
-      // Request invoice
-      const invoiceResponse = await axios.get(callbackUrl.toString());
-      
-      // Return standardized response
-      res.json({
-        paymentRequest: invoiceResponse.data.pr,
-        paymentHash: invoiceResponse.data.verify,
-        successAction: invoiceResponse.data.successAction
-      });
     } else if (PAYMENT_SYSTEM === 'coinos') {
       // Create Coinos lightning invoice
       if (!COINOS_TOKEN) {
@@ -114,19 +94,23 @@ app.post('/api/create-invoice', async (req, res) => {
         }
       );
 
+      // Presence check: ensure required fields exist before responding
+      if (!response.data.text || !response.data.id) {
+        throw new Error('Coinos response missing required fields (text, id)');
+      }
+
       // Return standardized response for Coinos
       res.json({
         paymentRequest: response.data.text, // Coinos returns payment request in 'text' field
-        paymentHash: response.data.id,       // Coinos indexes invoice:<uuid>
-        amount: response.data.amount,
-        currency: response.data.currency
+        paymentHash: response.data.id       // Coinos indexes invoice:<uuid>
+        // currency dropped — not needed by client
       });
     } else {
       throw new Error('Invalid payment system');
     }
   } catch (error) {
     console.error('Error creating invoice:', error.response?.data || error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create invoice'
     });
   }
@@ -186,6 +170,10 @@ app.get('/api/check-payment/:paymentHash', async (req, res) => {
     }
   } catch (error) {
     console.error('Error checking payment:', error.response?.data || error.message);
+    // Return 404 for unknown coinos invoices, 500 for other errors
+    if (error.response?.status === 404) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
     res.status(500).json({ error: 'Failed to check payment status' });
   }
 });
