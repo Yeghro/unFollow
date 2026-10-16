@@ -24,6 +24,9 @@ document.getElementById("loginButton").addEventListener("click", async () => {
   loadingSpinner.style.display = "block";
 
   try {
+    // Validate the months input up front, before any relay work
+    const inactiveMonths = getInactiveMonths();
+
     // Read the pubkey from the NIP-07 extension (throws if none is installed)
     await initializeNip07Signer();
 
@@ -45,8 +48,6 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       ).textContent = `Hex Key: ${profile.pubkey}`;
     }
 
-    const inactiveMonths = getInactiveMonths();
-
     const {
       event: kind3Event,
       followedPubkeys,
@@ -59,7 +60,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       totalPubkeysElement.textContent = `Total Pubkeys Found: ${totalPubkeys}`;
     }
 
-    const { activePubkeys, inactivePubkeys, followedKind0 } =
+    const { activePubkeys, inactivePubkeys, followedKind0, lastNotes } =
       await categorizePubkeys(followedPubkeys, inactiveMonths);
 
     displayPubkeyInformation(
@@ -67,7 +68,8 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       inactivePubkeys,
       inactivePubkeys.map(nip19.npubEncode), // Assuming you want to display npubs
       activePubkeys,
-      followedKind0
+      followedKind0,
+      lastNotes
     );
 
     // Open the default tab (nonActivePubkeys)

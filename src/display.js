@@ -1,5 +1,22 @@
 import { nip19 } from 'nostr-tools';
 
+const PROFILE_URL_BASE = 'https://jumble.social/users/';
+
+// "Last note: 2025-01-31 (~9 months ago)" or "No notes found"
+function describeLastNote(createdAt) {
+  if (!createdAt) return "Last note: none found on connected relays";
+  const date = new Date(createdAt * 1000).toISOString().slice(0, 10);
+  const months = Math.floor((Date.now() / 1000 - createdAt) / (30 * 24 * 60 * 60));
+  return `Last note: ${date} (~${months} months ago)`;
+}
+
+function appendLastNote(listItem, createdAt) {
+  const note = document.createElement("p");
+  note.textContent = describeLastNote(createdAt);
+  note.style.color = "rgb(193, 177, 148)";
+  listItem.appendChild(note);
+}
+
 export function updateUserProfileCard(profile) {
   const profileData = JSON.parse(profile.content);
   // console.log("Parsed profile:", profileData);
@@ -65,7 +82,8 @@ export function displayPubkeyInformation(
   nonActivePubkeys,
   inactiveNpubs,
   activePubkeys,
-  followedKind0
+  followedKind0,
+  lastNotes = new Map()
 ) {
   // console.log("Displaying pubkey information...");
   // console.log("Total Pubkeys:", totalPubkeys);
@@ -89,7 +107,7 @@ export function displayPubkeyInformation(
   nonActivePubkeys.forEach((pubkey) => {
     const listItem = document.createElement("li");
     const link = document.createElement("a");
-    link.href = `https://njump.me/p/${pubkey}`;
+    link.href = `${PROFILE_URL_BASE}${nip19.npubEncode(pubkey)}`;
     link.target = "_blank";
     link.textContent = pubkey;
     link.classList.add("pubkey-link");
@@ -111,6 +129,7 @@ export function displayPubkeyInformation(
       // console.log(`No kind 0 event found for pubkey: ${pubkey}`);
     }
 
+    appendLastNote(listItem, lastNotes.get(pubkey));
     nonActivePubkeysList.appendChild(listItem);
   });
 
@@ -132,7 +151,7 @@ export function displayPubkeyInformation(
     inactiveNpubs.forEach((npub) => {
       const listItem = document.createElement("li");
       const link = document.createElement("a");
-      link.href = `https://njump.me/${npub}`;
+      link.href = `${PROFILE_URL_BASE}${npub}`;
       link.target = "_blank";
       link.textContent = npub;
       link.classList.add("pubkey-link");
@@ -160,6 +179,7 @@ export function displayPubkeyInformation(
         }
       }
 
+      appendLastNote(listItem, lastNotes.get(pubkey));
       nonActiveNpubsList.appendChild(listItem);
     });
   } else {

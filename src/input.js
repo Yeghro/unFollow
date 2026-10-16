@@ -10,7 +10,11 @@ import {
 
 export function getInactiveMonths() {
   const inactiveMonthsInput = document.getElementById("inactiveMonths");
-  return parseInt(inactiveMonthsInput.value);
+  const months = parseInt(inactiveMonthsInput.value, 10);
+  if (!Number.isFinite(months) || months < 1) {
+    throw new Error("Enter the number of inactive months (1 or more).");
+  }
+  return months;
 }
 
 export async function handleManualPubkeyCheck() {
@@ -57,7 +61,7 @@ export async function handleManualPubkeyCheck() {
       }
 
       // Categorize the pubkeys
-      const { activePubkeys, inactivePubkeys, followedKind0 } =
+      const { activePubkeys, inactivePubkeys, followedKind0, lastNotes } =
         await categorizePubkeys(followedPubkeys, inactiveMonths);
       console.log("Active pubkeys:", activePubkeys);
       console.log("Inactive pubkeys:", inactivePubkeys);
@@ -67,7 +71,8 @@ export async function handleManualPubkeyCheck() {
         inactivePubkeys,
         inactivePubkeys.map(nip19.npubEncode),
         activePubkeys,
-        followedKind0
+        followedKind0,
+        lastNotes
       );
 
       // Automatically open the tab with the non-active pubkeys

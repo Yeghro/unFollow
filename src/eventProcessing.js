@@ -3,6 +3,7 @@ import { queryRelay } from "./fetching.js";
 
 const KIND1_LIMIT = 500;
 const PASS_TIMEOUT = 6000;
+const VERIFY_CHUNK = 10; // per-author filters per REQ in the final verification
 
 export async function categorizePubkeys(
   followedPubkeys,
@@ -20,6 +21,7 @@ export async function categorizePubkeys(
   const allPubkeys = Array.from(new Set(followedPubkeys));
   const activePubkeys = new Set();
   const followedKind0 = new Map();
+  const lastNotes = new Map(); // pubkey -> newest kind 1 created_at seen (verification)
   const state = { anyRelayFinished: false };
   const scope = new Set(allPubkeys);
   console.log("Followed pubkeys sent to categorize:", allPubkeys.length);
@@ -56,6 +58,13 @@ export async function categorizePubkeys(
     updateProgress(retryCount, maxRetries);
   }
 
+  // Batch queries can miss authors (relay result caps, quirks). For everyone
+  // still unseen, ask for each author's single newest note so the verdict
+  // rests on their actual latest note, not on a shared result window.
+  const { userRelays, otherRelays } = splitRelays();
+  await verifyLatestNotes(allPubkeys.filter((p) => !activePubkeys.has(p)), userRelays);
+  await verifyLatestNotes(allPubkeys.filter((p) => !activePubkeys.has(p)), otherRelays);
+
   updateProgress(maxRetries, maxRetries);
 
   if (!state.anyRelayFinished) {
@@ -66,7 +75,38 @@ export async function categorizePubkeys(
     activePubkeys: Array.from(activePubkeys),
     inactivePubkeys: allPubkeys.filter((pubkey) => !activePubkeys.has(pubkey)),
     followedKind0,
+    lastNotes,
   };
+
+  async function verifyLatestNotes(pubkeys, relayList) {
+    if (pubkeys.length === 0) return;
+    await Promise.all(
+      relayList.map(async (relay) => {
+        for (let i = 0; i < pubkeys.length; i += VERIFY_CHUNK) {
+          const chunk = pubkeys
+            .slice(i, i + VERIFY_CHUNK)
+            .filter((pubkey) => !activePubkeys.has(pubkey));
+          if (chunk.length === 0) continue;
+
+          const result = await queryRelay(
+            relay,
+            chunk.map((pubkey) => ({ authors: [pubkey], kinds: [1], limit: 1 })),
+            { timeout: PASS_TIMEOUT }
+          );
+          if (result.ok) state.anyRelayFinished = true;
+          for (const event of result.events) {
+            if (event.kind !== 1 || !scope.has(event.pubkey)) continue;
+            if (event.created_at > (lastNotes.get(event.pubkey) ?? 0)) {
+              lastNotes.set(event.pubkey, event.created_at);
+            }
+            if (event.created_at > inactiveThreshold) {
+              activePubkeys.add(event.pubkey);
+            }
+          }
+        }
+      })
+    );
+  }
 
   async function queryBatch(pubkeys, relayList) {
     if (relayList.length === 0) return;

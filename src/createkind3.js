@@ -14,7 +14,7 @@ export async function createKind3Event(inactivePubkeys, originalEvent) {
 
   const inactive = new Set(inactivePubkeys);
   const tags = originalEvent.tags.filter(
-    (tag) => !(tag[0] === "p" && inactive.has(tag[1]))
+    (tag) => !(tag[0] === "p" && inactive.has(String(tag[1]).toLowerCase()))
   );
   const removed = originalEvent.tags.length - tags.length;
   const kept = tags.filter((tag) => tag[0] === "p").length;

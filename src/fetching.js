@@ -113,7 +113,7 @@ export async function fetchKind3Events(pubkey) {
   const followedPubkeys = new Set();
   latestEvent.tags.forEach((tag) => {
     if (tag[0] === "p" && tag[1] && isValidHexKey(tag[1])) {
-      followedPubkeys.add(tag[1]);
+      followedPubkeys.add(tag[1].toLowerCase());
     }
   });
   return {
