@@ -65,7 +65,7 @@ To test the Coinos integration:
 
 ## Deploying the frontend
 
-`dist/` is committed and mounted directly into nginx, so rebuild it whenever `src/`, `index.html` or `style.css` change. Building needs Node 20.19+ or 22.12+ (Vite 8). Run `npm run check:dist` before committing; it rebuilds and fails if `dist/` differs from what is committed.
+`dist/` is committed and mounted directly into nginx, so rebuild it whenever `src/`, `index.html` or `style.css` change. Building needs Node 20.19+ or 22.12+ (Vite 8). Run `npm run check:dist` before committing; it rebuilds and fails if `dist/` differs from what is staged or committed (stage the rebuilt `dist/` first).
 
 ## API Changes
 
