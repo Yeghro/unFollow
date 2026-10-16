@@ -137,7 +137,7 @@ document.querySelectorAll(".tablink").forEach((tablink) => {
 /*  Tip Configuration */
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 const tipAmounts = import.meta.env.VITE_TIP_AMOUNTS ?
-  import.meta.env.VITE_TIP_AMOUNTS.split(',').map(Number) :
+  import.meta.env.VITE_TIP_AMOUNTS.split(',').map(Number).filter(Number.isFinite) :
   [1000, 5000, 10000, 20000];
 
 const QR_ID = import.meta.env.VITE_QR_CONTAINER_ID || 'qr-code-container';

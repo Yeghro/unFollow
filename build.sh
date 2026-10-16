@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Set up the public directory for static assets
 echo "Setting up public directory..."

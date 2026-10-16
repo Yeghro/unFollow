@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-app.set('trust proxy', 1); // trust nginx for CF-Connecting-IP header
+app.set('trust proxy', 1); // trust nginx for X-Forwarded-For
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(join(__dirname, 'public')));
 
@@ -23,7 +23,8 @@ app.post('/api/create-invoice', rateLimit({
   legacyHeaders: false,
   // ipKeyGenerator takes an IP string, not the request. Passing `req` returns the
   // request object itself, which is unique per request, so the limiter never matches.
-  keyGenerator: (req) => req.headers['cf-connecting-ip'] || ipKeyGenerator(req.ip),
+  // nginx resolves the real client IP (real_ip module) and appends it to XFF, so req.ip is trusted.
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
 }));
 
 const LNBITS_URL = process.env.LNBITS_URL;

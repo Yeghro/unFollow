@@ -9,6 +9,7 @@ export class SecureLightningPay {
     // Available tip amounts in sats
     this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
     this.amount = config.amount;
+    this._pollRun = 0;
 
     // DOM elements for UI interaction
     this.targetElement = config.targetElement;
@@ -104,6 +105,7 @@ export class SecureLightningPay {
         return;
       }
       const invoiceData = await this.getInvoiceData();
+      this._pollRun++; // supersede any poll for the previous invoice
       await this.displayInvoice(invoiceData);
     } catch (error) {
       this.handleError('Error handling tip:', error);
@@ -141,34 +143,47 @@ export class SecureLightningPay {
     // Cancel any previous poller to avoid stacking
     if (this._pollInterval) {
       clearInterval(this._pollInterval);
+      this._pollInterval = null;
     }
+    // Generation token: results from superseded pollers are ignored
+    const run = ++this._pollRun;
     let attempts = 0;
     let consecutiveErrors = 0;
+    let inFlight = false;
     const maxAttempts = 60; // 5 minutes maximum (with 5-second intervals)
     const maxConsecutiveErrors = 3;
 
+    const stop = () => {
+      clearInterval(checkInterval);
+      this._pollInterval = null;
+    };
+
     const checkInterval = setInterval(async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         attempts++;
         const { paid } = await this.checkPayment(paymentHash);
+        if (run !== this._pollRun) return;
+        consecutiveErrors = 0;
 
         if (paid) {
-          clearInterval(checkInterval);
-          this._pollInterval = null;
+          stop();
           this.handleSuccessfulPayment();
         } else if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          this._pollInterval = null;
+          stop();
           this.handleFailedPayment();
         }
       } catch (error) {
+        if (run !== this._pollRun) return;
         console.error('Error checking payment:', error);
         consecutiveErrors++;
         if (consecutiveErrors >= maxConsecutiveErrors) {
-          clearInterval(checkInterval);
-          this._pollInterval = null;
+          stop();
           this.handleFailedPayment();
         }
+      } finally {
+        inFlight = false;
       }
     }, 5000);
 
