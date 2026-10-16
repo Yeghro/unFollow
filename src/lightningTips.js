@@ -65,7 +65,10 @@ export class SecureLightningPay {
 
   async checkPayment(paymentIdentifier) {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`);
+      // Time-box each status request so a hung connection can't stall the poller
+      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`, {
+        signal: AbortSignal.timeout(10000)
+      });
       if (!response.ok) {
         throw new Error(`Failed to check payment status: ${response.status}`);
       }
@@ -105,7 +108,7 @@ export class SecureLightningPay {
         return;
       }
       const invoiceData = await this.getInvoiceData();
-      this._pollRun++; // supersede any poll for the previous invoice
+      this.cancelPaymentCheck(); // stop polling the previous invoice
       await this.displayInvoice(invoiceData);
     } catch (error) {
       this.handleError('Error handling tip:', error);
@@ -139,18 +142,23 @@ export class SecureLightningPay {
     }
   }
 
-  startPaymentCheck(paymentHash) {
-    // Cancel any previous poller to avoid stacking
+  // Stop the active poller (if any) and invalidate its in-flight callbacks
+  cancelPaymentCheck() {
     if (this._pollInterval) {
       clearInterval(this._pollInterval);
       this._pollInterval = null;
     }
+    this._pollRun++;
+  }
+
+  startPaymentCheck(paymentHash) {
+    // Cancel any previous poller to avoid stacking
+    this.cancelPaymentCheck();
     // Generation token: results from superseded pollers are ignored
-    const run = ++this._pollRun;
-    let attempts = 0;
+    const run = this._pollRun;
     let consecutiveErrors = 0;
     let inFlight = false;
-    const maxAttempts = 60; // 5 minutes maximum (with 5-second intervals)
+    const deadline = Date.now() + 5 * 60 * 1000; // 5 minutes maximum, wall-clock
     const maxConsecutiveErrors = 3;
 
     const stop = () => {
@@ -159,10 +167,14 @@ export class SecureLightningPay {
     };
 
     const checkInterval = setInterval(async () => {
+      if (Date.now() >= deadline) {
+        stop();
+        this.handleFailedPayment();
+        return;
+      }
       if (inFlight) return;
       inFlight = true;
       try {
-        attempts++;
         const { paid } = await this.checkPayment(paymentHash);
         if (run !== this._pollRun) return;
         consecutiveErrors = 0;
@@ -170,9 +182,6 @@ export class SecureLightningPay {
         if (paid) {
           stop();
           this.handleSuccessfulPayment();
-        } else if (attempts >= maxAttempts) {
-          stop();
-          this.handleFailedPayment();
         }
       } catch (error) {
         if (run !== this._pollRun) return;
