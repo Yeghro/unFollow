@@ -63,6 +63,15 @@ To test the Coinos integration:
 4. Try creating a tip — the client will call `/api/create-invoice` and display a Lightning invoice QR
 5. Check payment status using `GET /api/check-payment/:id` with the `id` from the create response
 
+## Deploying the frontend
+
+`dist/` is committed and mounted directly into nginx, so rebuild it whenever `src/`, `index.html` or `style.css` change. Building needs Node 20.19+ or 22.12+ (Vite 8). Run `npm run check:dist` before committing; it rebuilds and fails if `dist/` differs from what is committed.
+
+## API Changes
+
+- `POST /api/create-invoice` and `GET /api/check-payment/:id` are the only payment endpoints.
+- The old `fetch-lnurl-params` endpoint has been removed; the frontend no longer uses it. External callers should create invoices with `/api/create-invoice` instead.
+
 ## API Documentation
 
 For detailed Coinos.io API documentation, visit: https://coinos.io/docs
