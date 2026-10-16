@@ -2,7 +2,7 @@ import { nip19 } from "nostr-tools";
 import { fetchKind0Events, queryRelay } from "./fetching.js";
 
 // Normalize to a canonical wss:// URL so "wss://x.io/" and "wss://x.io" match.
-const normalizeRelayUrl = (raw) => {
+export const normalizeRelayUrl = (raw) => {
   try {
     const url = new URL(String(raw).trim());
     if (url.protocol !== "wss:") return null;
@@ -69,6 +69,16 @@ const createWebSocket = (url) => {
       reject(new Error(`Connection to ${url} failed`));
     };
   });
+};
+
+// Opens a short-lived socket that is NOT added to the shared relays map.
+// Resolves null if the relay can't be reached in time.
+export const openTemporaryRelay = async (url) => {
+  try {
+    return await createWebSocket(url);
+  } catch {
+    return null;
+  }
 };
 
 const isOpen = (url) => relays[url]?.readyState === WebSocket.OPEN;

@@ -1,9 +1,16 @@
-import { relays, userRelayUrls } from "./nostrService.js";
+import {
+  relays,
+  userRelayUrls,
+  normalizeRelayUrl,
+  openTemporaryRelay,
+} from "./nostrService.js";
 import { queryRelay } from "./fetching.js";
 
-const KIND1_LIMIT = 500;
 const PASS_TIMEOUT = 6000;
 const VERIFY_CHUNK = 10; // per-author filters per REQ in the final verification
+const OUTBOX_MAX_RELAYS_PER_AUTHOR = 5;
+const OUTBOX_CONCURRENCY = 12;
+const OUTBOX_DEADLINE_MS = 90000;
 
 export async function categorizePubkeys(
   followedPubkeys,
@@ -65,6 +72,10 @@ export async function categorizePubkeys(
   await verifyLatestNotes(allPubkeys.filter((p) => !activePubkeys.has(p)), userRelays);
   await verifyLatestNotes(allPubkeys.filter((p) => !activePubkeys.has(p)), otherRelays);
 
+  // Authors often post only to their own (NIP-65 "write") relays, which none of
+  // our shared relays may carry. Ask those relays directly for what's left.
+  await verifyViaAuthorRelays(allPubkeys.filter((p) => !activePubkeys.has(p)));
+
   updateProgress(maxRetries, maxRetries);
 
   if (!state.anyRelayFinished) {
@@ -77,6 +88,94 @@ export async function categorizePubkeys(
     followedKind0,
     lastNotes,
   };
+
+  function recordNotes(events) {
+    for (const event of events) {
+      if (event.kind !== 1 || !scope.has(event.pubkey)) continue;
+      if (event.created_at > (lastNotes.get(event.pubkey) ?? 0)) {
+        lastNotes.set(event.pubkey, event.created_at);
+      }
+      if (event.created_at > inactiveThreshold) {
+        activePubkeys.add(event.pubkey);
+      }
+    }
+  }
+
+  async function verifyViaAuthorRelays(pubkeys) {
+    if (pubkeys.length === 0) return;
+    const deadline = Date.now() + OUTBOX_DEADLINE_MS;
+    const sharedRelays = Object.values(relays).filter(
+      (relay) => relay.readyState === WebSocket.OPEN
+    );
+
+    // 1. Each remaining author's newest relay list (kind 10002)
+    const relayLists = new Map();
+    for (let i = 0; i < pubkeys.length; i += 100) {
+      const authors = pubkeys.slice(i, i + 100);
+      const results = await Promise.all(
+        sharedRelays.map((relay) =>
+          queryRelay(relay, [{ authors, kinds: [10002] }], { timeout: PASS_TIMEOUT })
+        )
+      );
+      for (const result of results) {
+        if (result.ok) state.anyRelayFinished = true;
+        for (const event of result.events) {
+          if (event.kind !== 10002 || !scope.has(event.pubkey)) continue;
+          const current = relayLists.get(event.pubkey);
+          if (!current || event.created_at > current.created_at) {
+            relayLists.set(event.pubkey, event);
+          }
+        }
+      }
+    }
+
+    // 2. Group authors by the write relays we are not already connected to
+    const connected = new Set(Object.keys(relays));
+    const authorsByRelay = new Map();
+    for (const [pubkey, event] of relayLists) {
+      const urls = event.tags
+        .filter((tag) => tag[0] === "r" && (!tag[2] || tag[2] === "write"))
+        .map((tag) => normalizeRelayUrl(tag[1]))
+        .filter((url) => url && !connected.has(url));
+      for (const url of [...new Set(urls)].slice(0, OUTBOX_MAX_RELAYS_PER_AUTHOR)) {
+        if (!authorsByRelay.has(url)) authorsByRelay.set(url, []);
+        authorsByRelay.get(url).push(pubkey);
+      }
+    }
+
+    // 3. Ask each relay for its authors' newest note (bounded concurrency)
+    const queue = Array.from(authorsByRelay);
+    const worker = async () => {
+      while (queue.length > 0 && Date.now() < deadline) {
+        const [url, authors] = queue.shift();
+        const todo = authors.filter((pubkey) => !activePubkeys.has(pubkey));
+        if (todo.length === 0) continue;
+
+        const socket = await openTemporaryRelay(url);
+        if (!socket) continue;
+        try {
+          for (let i = 0; i < todo.length; i += VERIFY_CHUNK) {
+            const chunk = todo
+              .slice(i, i + VERIFY_CHUNK)
+              .filter((pubkey) => !activePubkeys.has(pubkey));
+            if (chunk.length === 0) continue;
+            const result = await queryRelay(
+              socket,
+              chunk.map((pubkey) => ({ authors: [pubkey], kinds: [1], limit: 1 })),
+              { timeout: PASS_TIMEOUT }
+            );
+            if (result.ok) state.anyRelayFinished = true;
+            recordNotes(result.events);
+          }
+        } finally {
+          socket.close();
+        }
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(OUTBOX_CONCURRENCY, queue.length) }, worker)
+    );
+  }
 
   async function verifyLatestNotes(pubkeys, relayList) {
     if (pubkeys.length === 0) return;
@@ -94,15 +193,7 @@ export async function categorizePubkeys(
             { timeout: PASS_TIMEOUT }
           );
           if (result.ok) state.anyRelayFinished = true;
-          for (const event of result.events) {
-            if (event.kind !== 1 || !scope.has(event.pubkey)) continue;
-            if (event.created_at > (lastNotes.get(event.pubkey) ?? 0)) {
-              lastNotes.set(event.pubkey, event.created_at);
-            }
-            if (event.created_at > inactiveThreshold) {
-              activePubkeys.add(event.pubkey);
-            }
-          }
+          recordNotes(result.events);
         }
       })
     );
@@ -113,7 +204,7 @@ export async function categorizePubkeys(
 
     // Only the newest kind 1 per window and the newest kind 0 are requested
     const filters = [
-      { authors: pubkeys, kinds: [1], since: inactiveThreshold, limit: KIND1_LIMIT },
+      { authors: pubkeys, kinds: [1], since: inactiveThreshold },
     ];
     const needProfile = pubkeys.filter((pubkey) => !followedKind0.has(pubkey));
     if (needProfile.length > 0) {
