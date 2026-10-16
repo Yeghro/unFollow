@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "node server.js",
-    "check:dist": "npm run build && git diff --exit-code -- dist"
+    "check:dist": "npm run build && node scripts/check-dist.mjs"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
