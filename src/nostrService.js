@@ -1,22 +1,34 @@
-import { NDKNip07Signer } from "@nostr-dev-kit/ndk";
-import { fetchKind0Events } from "./fetching.js";
+import { nip19 } from "nostr-tools";
+import { fetchKind0Events, queryRelay } from "./fetching.js";
 
-const RELAY_URLS = [
-  "wss://purplepag.es",
-  "wss://relay.nostr.band",
-  "wss://relay.primal.net",
-  "wss://relay.damus.io",
-  "wss://relay.snort.social",
-  "wss://nostrpub.yeghro.site",
+// Normalize to a canonical wss:// URL so "wss://x.io/" and "wss://x.io" match.
+const normalizeRelayUrl = (raw) => {
+  try {
+    const url = new URL(String(raw).trim());
+    if (url.protocol !== "wss:") return null;
+    url.hash = "";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+};
+
+const normalizeRelayUrls = (list) => [
+  ...new Set(list.map(normalizeRelayUrl).filter(Boolean)),
 ];
 
+// Default relays come from VITE_RELAY_URLS (comma-separated) at build time.
+const RELAY_URLS = normalizeRelayUrls(
+  (import.meta.env.VITE_RELAY_URLS || "").split(",")
+);
+
 const CONNECTION_TIMEOUT = 3000;
-const VALIDATION_TIMEOUT = 3000;
-const RESPONSE_TIMEOUT = 3000;
+const RESPONSE_TIMEOUT = 5000;
 
 let relays = {};
-let nip07Signer = null;
 let activeUser = null;
+// Relays taken from the target user's relay list (kind 10002); queried first.
+const userRelayUrls = new Set();
 
 const logger = {
   info: (message) => console.log(`[INFO] ${message}`),
@@ -24,19 +36,20 @@ const logger = {
   error: (message) => console.error(`[ERROR] ${message}`),
 };
 
-const initializeNip07Signer = async () => {
-  try {
-    if (typeof window !== "undefined" && window.nostr) {
-      nip07Signer = new NDKNip07Signer();
-      activeUser = await nip07Signer.user();
-      logger.info(`Signer is ready and user is: ${activeUser.npub}`);
-    } else {
-      logger.warn("NIP-07 extension not detected.");
-    }
-  } catch (error) {
-    logger.error(`Error initializing NDKNip07Signer: ${error.message}`);
+// Reads the pubkey from the NIP-07 extension. Throws if none is available.
+export const initializeNip07Signer = async () => {
+  if (typeof window === "undefined" || !window.nostr) {
+    throw new Error(
+      "No Nostr extension (NIP-07) detected. Install one such as Alby or nos2x and try again."
+    );
   }
+  const pubkey = await window.nostr.getPublicKey();
+  activeUser = { pubkey, npub: nip19.npubEncode(pubkey) };
+  logger.info(`Signer is ready and user is: ${activeUser.npub}`);
+  return activeUser;
 };
+
+export const signEvent = (event) => window.nostr.signEvent(event);
 
 const createWebSocket = (url) => {
   return new Promise((resolve, reject) => {
@@ -51,16 +64,23 @@ const createWebSocket = (url) => {
       resolve(ws);
     };
 
-    ws.onerror = (error) => {
+    ws.onerror = () => {
       clearTimeout(timeoutId);
-      reject(error);
+      reject(new Error(`Connection to ${url} failed`));
     };
   });
 };
 
+const isOpen = (url) => relays[url]?.readyState === WebSocket.OPEN;
+
 const connectToRelay = async (url) => {
   try {
     const ws = await createWebSocket(url);
+    ws.onerror = null;
+    // Drop dead sockets so they are reconnected on the next connectToRelays()
+    ws.onclose = () => {
+      if (relays[url] === ws) delete relays[url];
+    };
     relays[url] = ws;
     logger.info(`Successfully connected to relay: ${url}`);
     return true;
@@ -71,156 +91,64 @@ const connectToRelay = async (url) => {
 };
 
 export const connectToRelays = async (urls = RELAY_URLS) => {
-  await initializeNip07Signer();
+  if (urls.length === 0 && Object.keys(relays).length === 0) {
+    throw new Error("No relays configured. Set VITE_RELAY_URLS in .env and rebuild.");
+  }
 
-  const newUrls = urls.filter((url) => !relays[url]);
-  logger.info(`Attempting to connect to new relays: ${newUrls.join(", ")}`);
+  const newUrls = urls.filter((url) => !isOpen(url));
+  logger.info(`Attempting to connect to relays: ${newUrls.join(", ")}`);
 
   const results = await Promise.all(newUrls.map(connectToRelay));
-  const successfulConnections = results.filter(Boolean).length;
-
   logger.info(
-    `Successfully connected to ${successfulConnections} out of ${newUrls.length} new relays.`
+    `Connected to ${results.filter(Boolean).length} of ${newUrls.length} relays.`
   );
-  logger.info(`Established Relay Instances: ${Object.keys(relays).join(", ")}`);
-};
 
-const validateRelay = async (url) => {
-  logger.info(`Starting validation for relay: ${url}`);
-  try {
-    const ws = await createWebSocket(url);
-
-    const testRequest = JSON.stringify([
-      "REQ",
-      "test",
-      { limit: 1, kinds: [1] },
-    ]);
-    ws.send(testRequest);
-
-    const response = await Promise.race([
-      new Promise((resolve) => {
-        ws.onmessage = (event) => {
-          const message = JSON.parse(event.data);
-          if (message[0] === "EVENT" || message[0] === "EOSE") {
-            resolve({ status: "success" });
-          }
-        };
-      }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("No response")), RESPONSE_TIMEOUT)
-      ),
-    ]);
-
-    ws.close();
-    logger.info(`Relay ${url} validated successfully`);
-    return { url, ...response };
-  } catch (error) {
-    logger.warn(`Validation failed for relay ${url}: ${error.message}`);
-    return { url, status: "failed", reason: error.message };
+  if (Object.keys(relays).length === 0) {
+    throw new Error("Could not connect to any relay.");
   }
 };
 
+// Returns every relay in the user's newest relay list (kind 10002), read and write.
 const getUserRelays = async (pubkey) => {
-  logger.info(`Starting getUserRelays for pubkey: ${pubkey}`);
-  const userRelays = new Set();
-  const subscriptionId = `user-relays-${Math.random()
-    .toString(36)
-    .substr(2, 9)}`;
-
-  const request = JSON.stringify([
-    "REQ",
-    subscriptionId,
-    {
-      authors: [pubkey],
-      kinds: [10002],
-      limit: 1,
-    },
-  ]);
-
-  const relayPromises = Object.values(relays).map(async (ws) => {
-    return new Promise((resolve) => {
-      const timeoutId = setTimeout(() => {
-        resolve({ status: "timeout", url: ws.url });
-      }, RESPONSE_TIMEOUT);
-
-      ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg[0] === "EVENT" && msg[2].kind === 10002) {
-          clearTimeout(timeoutId);
-          msg[2].tags.forEach((tag) => {
-            if (tag[0] === "r") {
-              userRelays.add(tag[1]);
-            }
-          });
-          resolve({ status: "success", url: ws.url });
-        }
-      };
-
-      ws.onerror = (error) => {
-        clearTimeout(timeoutId);
-        logger.warn(`WebSocket error for ${ws.url}: ${error.message}`);
-        resolve({ status: "error", url: ws.url, error: error.message });
-      };
-
-      ws.send(request);
-    });
-  });
-
-  const results = await Promise.allSettled(relayPromises);
-
-  results.forEach((result) => {
-    if (result.value.status === "timeout") {
-      logger.warn(`Timeout fetching user relays from ${result.value.url}`);
-    } else if (result.value.status === "error") {
-      logger.warn(
-        `Error fetching user relays from ${result.value.url}: ${result.value.error}`
-      );
-    }
-  });
-
-  // Close the subscription
-  Object.values(relays).forEach((ws) => {
-    ws.send(JSON.stringify(["CLOSE", subscriptionId]));
-  });
-
-  logger.info(
-    `Finished getUserRelays. User relays: ${Array.from(userRelays).join(", ")}`
+  logger.info(`Fetching relay list for pubkey: ${pubkey}`);
+  const results = await Promise.all(
+    Object.values(relays).map((ws) =>
+      queryRelay(ws, [{ authors: [pubkey], kinds: [10002], limit: 1 }], {
+        timeout: RESPONSE_TIMEOUT,
+      })
+    )
   );
-  return Array.from(userRelays);
+
+  const newest = results
+    .flatMap((result) => result.events)
+    .filter((event) => event.kind === 10002)
+    .reduce(
+      (latest, event) =>
+        !latest || event.created_at > latest.created_at ? event : latest,
+      null
+    );
+  if (!newest) return [];
+
+  return normalizeRelayUrls(
+    newest.tags.filter((tag) => tag[0] === "r").map((tag) => tag[1])
+  );
 };
 
+// Connects the default relays plus all of the target user's relays, then
+// returns the newest profile(s) available across all of them.
 export const connectUsersRelays = async (targetPubkey) => {
   logger.info(`Starting connectUsersRelays for pubkey: ${targetPubkey}`);
 
-  if (Object.keys(relays).length === 0) {
-    logger.info("No existing relays, connecting to default relays");
-    await connectToRelays();
-  }
+  await connectToRelays();
 
-  logger.info("Starting to fetch kind 0 events");
-  const kind0FetchPromise = fetchKind0Events([targetPubkey]);
-
-  logger.info("Fetching user-specific relays");
   const userRelays = await getUserRelays(targetPubkey);
+  await connectToRelays(userRelays);
 
-  logger.info("Validating user relays");
-  const validationResults = await Promise.all(userRelays.map(validateRelay));
+  userRelayUrls.clear();
+  userRelays.filter(isOpen).forEach((url) => userRelayUrls.add(url));
+  logger.info(`User relays connected: ${Array.from(userRelayUrls).join(", ")}`);
 
-  const validUserRelays = validationResults
-    .filter((result) => result.status === "success")
-    .map((result) => result.url);
-
-  logger.info(`Valid user relays: ${validUserRelays.join(", ")}`);
-
-  const allRelayUrls = [...new Set([...RELAY_URLS, ...validUserRelays])];
-  logger.info(`All relay URLs: ${allRelayUrls.join(", ")}`);
-
-  logger.info("Connecting to additional relays");
-  await connectToRelays(allRelayUrls);
-
-  logger.info("Finished connectUsersRelays");
-
-  return await kind0FetchPromise;
+  return await fetchKind0Events([targetPubkey]);
 };
 
-export { nip07Signer, activeUser, relays };
+export { activeUser, relays, userRelayUrls };

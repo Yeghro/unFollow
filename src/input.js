@@ -1,4 +1,4 @@
-import { connectToRelays, connectUsersRelays } from "./nostrService";
+import { connectUsersRelays } from "./nostrService";
 import { categorizePubkeys } from "./eventProcessing";
 import { fetchKind0Events, fetchKind3Events } from "./fetching";
 import { nip19 } from "nostr-tools";
@@ -23,7 +23,9 @@ export async function handleManualPubkeyCheck() {
       if (manualPubkey.startsWith("npub")) {
         const decoded = nip19.decode(manualPubkey);
         manualPubkey = decoded.data;
-      } else if (!/^[0-9a-fA-F]{64}$/.test(manualPubkey)) {
+      } else if (/^[0-9a-fA-F]{64}$/.test(manualPubkey)) {
+        manualPubkey = manualPubkey.toLowerCase();
+      } else {
         throw new Error("Invalid pubkey or npub format");
       }
 

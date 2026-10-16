@@ -17,7 +17,6 @@
     "vite": "^8.2.1"
   },
   "dependencies": {
-    "@nostr-dev-kit/ndk": "^2.8.2",
     "axios": "^1.7.7",
     "dotenv": "^16.4.5",
     "express": "^4.20.0",
