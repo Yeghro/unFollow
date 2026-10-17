@@ -14,6 +14,7 @@ import { getInactiveMonths, handleManualPubkeyCheck } from "./input.js";
 import { categorizePubkeys } from "./eventProcessing.js";
 import { createKind3Event } from "./createkind3.js";
 import { SecureLightningPay } from "./lightningTips.js";
+import { showModal } from "./modal.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
   const loginButton = document.getElementById("loginButton");
@@ -91,21 +92,48 @@ document.getElementById("loginButton").addEventListener("click", async () => {
           inactivePubkeys,
           kind3Event
         );
-        alert(
-          `Follow list updated: removed ${removed}, kept ${kept}. Accepted by ${accepted} relay(s).`
-        );
+        showModal({
+          type: "success",
+          title: "Follow list updated",
+          message:
+            "Your new follow list was published. Only the inactive follows were removed; everything else in your list is unchanged.",
+          stats: [
+            { label: "Removed", value: removed },
+            { label: "Kept", value: kept },
+            { label: "Relays accepted", value: accepted },
+          ],
+        });
       } catch (error) {
         console.error(error);
-        alert(`Failed to update follow list: ${error.message}`);
+        showModal({
+          type: "error",
+          title: "Couldn't update your follow list",
+          message: error.message,
+        });
       }
     };
 
-    alert(
-      "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."
-    );
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    showModal({
+      type: "success",
+      title: "Search complete",
+      message:
+        inactivePubkeys.length > 0
+          ? `Found ${plural(inactivePubkeys.length, "follow")} with no notes in the last ${plural(inactiveMonths, "month")}. Review them below. Nothing has been changed yet.`
+          : `Every follow has posted within the last ${plural(inactiveMonths, "month")}. Nothing to unfollow.`,
+      stats: [
+        { label: "Following", value: totalPubkeys },
+        { label: "Active", value: activePubkeys.length },
+        { label: "Inactive", value: inactivePubkeys.length },
+      ],
+    });
   } catch (error) {
     console.error(error);
-    alert(`Failed to login with Nostr: ${error.message}`);
+    showModal({
+      type: "error",
+      title: "Login failed",
+      message: error.message,
+    });
     loginButton.style.display = ""; // allow another attempt without reloading
   } finally {
     loadingSpinner.style.display = "none"; // Hide the spinner after login is complete
@@ -134,7 +162,11 @@ document
         );
       }
     } catch (error) {
-      alert("Failed to check manual pubkey.");
+      showModal({
+        type: "error",
+        title: "Pubkey check failed",
+        message: "Failed to check manual pubkey.",
+      });
     }
   });
 

@@ -2,6 +2,7 @@ import { connectUsersRelays } from "./nostrService";
 import { categorizePubkeys } from "./eventProcessing";
 import { fetchKind0Events, fetchKind3Events } from "./fetching";
 import { nip19 } from "nostr-tools";
+import { showModal } from "./modal";
 import {
   displayPubkeyInformation,
   updateUserProfileCard,
@@ -81,10 +82,20 @@ export async function handleManualPubkeyCheck() {
       document.getElementById("loadingSpinner").style.display = "none";
     } catch (error) {
       document.getElementById("loadingSpinner").style.display = "none";
-      alert("An error occurred while processing the manual pubkey.");
+      showModal({
+        type: "error",
+        title: "Pubkey check failed",
+        message:
+          error.message ||
+          "An error occurred while processing the manual pubkey.",
+      });
       console.error(error);
     }
   } else {
-    alert("Please enter a valid pubkey/npub.");
+    showModal({
+      type: "error",
+      title: "Pubkey needed",
+      message: "Please enter a valid pubkey/npub.",
+    });
   }
 }
