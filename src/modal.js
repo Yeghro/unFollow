@@ -1,3 +1,5 @@
+import "./modal.css";
+
 // Lightweight styled dialog that replaces window.alert() for status notices.
 // Content is set via textContent only, so messages can never inject markup.
 const ICONS = { success: "✓", error: "!", info: "i" };
