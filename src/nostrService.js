@@ -22,7 +22,7 @@ const RELAY_URLS = normalizeRelayUrls(
   (import.meta.env.VITE_RELAY_URLS || "").split(",")
 );
 
-const CONNECTION_TIMEOUT = 3000;
+const CONNECTION_TIMEOUT = 5000;
 const RESPONSE_TIMEOUT = 5000;
 
 let relays = {};
