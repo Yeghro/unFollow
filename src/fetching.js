@@ -1,10 +1,6 @@
 import { relays } from "./nostrService.js";
 
-function delay(ms) {
-  return new Promise(function (resolve) {
-    setTimeout(resolve, ms);
-  });
-}
+const QUERY_TIMEOUT = 8000;
 
 function createSubscriptionId() {
   return Math.random().toString(36).substr(2, 9);
@@ -14,94 +10,115 @@ function isValidHexKey(str) {
   return /^[0-9a-fA-F]{64}$/.test(str);
 }
 
-function createNostrRequest(subscriptionId, authors, kinds, limit = 1) {
-  return JSON.stringify(["REQ", subscriptionId, { authors, kinds, limit }]);
-}
-
-function createCloseRequest(subscriptionId) {
-  return JSON.stringify(["CLOSE", subscriptionId]);
-}
-
-function fetchEventsFromRelay(relay, request, subscriptionId, eventKind) {
-  return new Promise(function (resolve) {
+// Runs one subscription against one relay. Always settles: resolves on EOSE,
+// CLOSED, socket close, or timeout, so a dead relay can never hang the caller.
+// `ok` is true only when the relay finished the query (EOSE).
+export function queryRelay(relay, filters, { timeout = QUERY_TIMEOUT } = {}) {
+  return new Promise((resolve) => {
     const events = [];
-    function onMessage(event) {
-      const message = JSON.parse(event.data);
-      if (
-        message[0] === "EVENT" &&
-        message[1] === subscriptionId &&
-        message[2].kind === eventKind
-      ) {
-        events.push(message[2]);
-      }
-      if (message[0] === "EOSE" && message[1] === subscriptionId) {
-        relay.send(createCloseRequest(subscriptionId));
-        relay.removeEventListener("message", onMessage);
-        resolve(events);
-      }
+    if (relay.readyState !== WebSocket.OPEN) {
+      resolve({ events, ok: false });
+      return;
     }
+
+    const subscriptionId = createSubscriptionId();
+    let settled = false;
+    let timer;
+
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      relay.removeEventListener("message", onMessage);
+      relay.removeEventListener("close", onClose);
+      if (relay.readyState === WebSocket.OPEN) {
+        relay.send(JSON.stringify(["CLOSE", subscriptionId]));
+      }
+      resolve({ events, ok });
+    };
+
+    const onClose = () => finish(false);
+
+    const onMessage = (event) => {
+      let message;
+      try {
+        message = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+      if (message[1] !== subscriptionId) return;
+      if (message[0] === "EVENT" && message[2]) {
+        events.push(message[2]);
+      } else if (message[0] === "EOSE") {
+        finish(true);
+      } else if (message[0] === "CLOSED") {
+        finish(false);
+      }
+    };
+
     relay.addEventListener("message", onMessage);
-    relay.send(request);
+    relay.addEventListener("close", onClose);
+    timer = setTimeout(() => finish(false), timeout);
+    relay.send(JSON.stringify(["REQ", subscriptionId, ...filters]));
   });
 }
-export async function fetchKind0Events(pubkeys) {
-  const subscriptionId = createSubscriptionId();
-  const request = createNostrRequest(subscriptionId, pubkeys, [0]);
 
-  const allEvents = await Promise.all(
-    Object.values(relays).map(async (relay) => {
-      const events = await fetchEventsFromRelay(
-        relay,
-        request,
-        subscriptionId,
-        0
-      );
-      await delay(100);
-      return events;
-    })
+// Queries every connected relay and returns { events, anyOk }.
+async function queryAllRelays(filters) {
+  const results = await Promise.all(
+    Object.values(relays).map((relay) => queryRelay(relay, filters))
   );
-
-  return allEvents.flat();
-}
-export async function fetchKind3Events(pubkey) {
-  const subscriptionId = createSubscriptionId();
-  const request = createNostrRequest(subscriptionId, [pubkey], [3]);
-  const allEvents = await Promise.all(
-    Object.values(relays).map(function (relay) {
-      return fetchEventsFromRelay(relay, request, subscriptionId, 3);
-    })
-  );
-  const events = allEvents.flat();
-  const latestEvent = events.reduce(function (latest, event) {
-    if (!latest || event.created_at > latest.created_at) {
-      return event;
-    }
-    return latest;
-  }, null);
-  if (latestEvent) {
-    const followedPubkeys = new Set();
-    const followedTopics = new Set();
-    latestEvent.tags.forEach(function (tag) {
-      if (tag[0] === "p" && tag[1] && isValidHexKey(tag[1])) {
-        followedPubkeys.add(tag[1]);
-      } else if (tag[0] === "t" && tag[1]) {
-        followedTopics.add(tag[1]);
-      }
-    });
-    console.log("Followed Topics for pubkey:", followedTopics);
-    return {
-      followedPubkeys: Array.from(followedPubkeys),
-      followedTopics: Array.from(followedTopics),
-      totalPubkeys: followedPubkeys.size,
-      totalTopics: followedTopics.size,
-      eventContent: latestEvent.content,
-    };
-  }
   return {
-    followedPubkeys: [],
-    followedTopics: [],
-    totalPubkeys: 0,
-    totalTopics: 0,
-    eventContent: null,
+    events: results.flatMap((result) => result.events),
+    anyOk: results.some((result) => result.ok),
+  };
+}
+
+// Returns only the newest kind 0 per pubkey, newest profile first.
+export async function fetchKind0Events(pubkeys) {
+  const { events } = await queryAllRelays([{ authors: pubkeys, kinds: [0] }]);
+  const newest = new Map();
+  for (const event of events) {
+    if (event.kind !== 0) continue;
+    const current = newest.get(event.pubkey);
+    if (!current || event.created_at > current.created_at) {
+      newest.set(event.pubkey, event);
+    }
+  }
+  return Array.from(newest.values()).sort((a, b) => b.created_at - a.created_at);
+}
+
+// Returns the newest kind 3 plus the follow list parsed from it. `event` is the
+// raw event (or null when none exists) so callers can republish it untouched.
+export async function fetchKind3Events(pubkey) {
+  const { events, anyOk } = await queryAllRelays([
+    { authors: [pubkey], kinds: [3], limit: 1 },
+  ]);
+  if (!anyOk) {
+    throw new Error("No relay responded when fetching the follow list.");
+  }
+
+  const latestEvent = events
+    .filter((event) => event.kind === 3 && event.pubkey === pubkey)
+    .reduce(
+      (latest, event) =>
+        !latest || event.created_at > latest.created_at ? event : latest,
+      null
+    );
+
+  if (!latestEvent) {
+    return { event: null, followedPubkeys: [], totalPubkeys: 0 };
+  }
+
+  const followedPubkeys = new Set();
+  latestEvent.tags.forEach((tag) => {
+    if (tag[0] === "p" && tag[1] && isValidHexKey(tag[1])) {
+      followedPubkeys.add(tag[1].toLowerCase());
+    }
+  });
+  return {
+    event: latestEvent,
+    followedPubkeys: Array.from(followedPubkeys),
+    totalPubkeys: followedPubkeys.size,
   };
 }

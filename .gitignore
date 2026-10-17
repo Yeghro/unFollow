@@ -5,11 +5,11 @@
 
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 
 # Build output
-dist/
+# NOTE: dist/ is intentionally NOT ignored on this branch.
+# docker-compose.yml mounts ./dist into nginx, so the built bundle must be committed.
 build/
 public/build/
 

@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   root: "./",
+  publicDir: 'public',
   server: {
     port: 3000,
     proxy: {
@@ -13,8 +15,11 @@ export default defineConfig({
   },
   build: {
     outDir: "./dist",
+    assetsDir: "assets",
     rollupOptions: {
-      input: "./src/main.js",
+      input: {
+        main: "./index.html",
+      },
     },
   },
 });

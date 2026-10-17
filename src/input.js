@@ -1,4 +1,4 @@
-import { connectToRelays, connectUsersRelays } from "./nostrService";
+import { connectUsersRelays } from "./nostrService";
 import { categorizePubkeys } from "./eventProcessing";
 import { fetchKind0Events, fetchKind3Events } from "./fetching";
 import { nip19 } from "nostr-tools";
@@ -10,7 +10,11 @@ import {
 
 export function getInactiveMonths() {
   const inactiveMonthsInput = document.getElementById("inactiveMonths");
-  return parseInt(inactiveMonthsInput.value);
+  const months = parseInt(inactiveMonthsInput.value, 10);
+  if (!Number.isFinite(months) || months < 1) {
+    throw new Error("Enter the number of inactive months (1 or more).");
+  }
+  return months;
 }
 
 export async function handleManualPubkeyCheck() {
@@ -23,7 +27,9 @@ export async function handleManualPubkeyCheck() {
       if (manualPubkey.startsWith("npub")) {
         const decoded = nip19.decode(manualPubkey);
         manualPubkey = decoded.data;
-      } else if (!/^[0-9a-fA-F]{64}$/.test(manualPubkey)) {
+      } else if (/^[0-9a-fA-F]{64}$/.test(manualPubkey)) {
+        manualPubkey = manualPubkey.toLowerCase();
+      } else {
         throw new Error("Invalid pubkey or npub format");
       }
 
@@ -55,7 +61,7 @@ export async function handleManualPubkeyCheck() {
       }
 
       // Categorize the pubkeys
-      const { activePubkeys, inactivePubkeys, followedKind0 } =
+      const { activePubkeys, inactivePubkeys, followedKind0, lastNotes } =
         await categorizePubkeys(followedPubkeys, inactiveMonths);
       console.log("Active pubkeys:", activePubkeys);
       console.log("Inactive pubkeys:", inactivePubkeys);
@@ -65,7 +71,8 @@ export async function handleManualPubkeyCheck() {
         inactivePubkeys,
         inactivePubkeys.map(nip19.npubEncode),
         activePubkeys,
-        followedKind0
+        followedKind0,
+        lastNotes
       );
 
       // Automatically open the tab with the non-active pubkeys

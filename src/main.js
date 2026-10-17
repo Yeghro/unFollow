@@ -1,5 +1,5 @@
 import {
-  connectToRelays,
+  initializeNip07Signer,
   activeUser,
   connectUsersRelays,
 } from "./nostrService.js";
@@ -8,7 +8,7 @@ import {
   displayPubkeyInformation,
   openTab,
 } from "./display.js";
-import { fetchKind0Events, fetchKind3Events } from "./fetching.js";
+import { fetchKind3Events } from "./fetching.js";
 import { nip19 } from "nostr-tools";
 import { getInactiveMonths, handleManualPubkeyCheck } from "./input.js";
 import { categorizePubkeys } from "./eventProcessing.js";
@@ -24,15 +24,14 @@ document.getElementById("loginButton").addEventListener("click", async () => {
   loadingSpinner.style.display = "block";
 
   try {
-    // Connect to relays only when login button is clicked
-    await connectToRelays();
+    // Validate the months input up front, before any relay work
+    const inactiveMonths = getInactiveMonths();
 
-    await connectUsersRelays(activeUser.pubkey);
+    // Read the pubkey from the NIP-07 extension (throws if none is installed)
+    await initializeNip07Signer();
 
-    // Ensure relays are connected before proceeding
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const kind0Events = await fetchKind0Events([activeUser.pubkey]);
+    // Connect default + user relays, then get the newest profile from all of them
+    const kind0Events = await connectUsersRelays(activeUser.pubkey);
 
     if (kind0Events.length > 0) {
       const profile = kind0Events[0];
@@ -49,14 +48,10 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       ).textContent = `Hex Key: ${profile.pubkey}`;
     }
 
-    const inactiveMonths = getInactiveMonths();
-
     const {
+      event: kind3Event,
       followedPubkeys,
-      followedTopics,
       totalPubkeys,
-      totalTopics,
-      eventContent,
     } = await fetchKind3Events(activeUser.pubkey);
     // console.log("kind3 returned to main:", followedPubkeys);
 
@@ -65,7 +60,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       totalPubkeysElement.textContent = `Total Pubkeys Found: ${totalPubkeys}`;
     }
 
-    const { activePubkeys, inactivePubkeys, followedKind0 } =
+    const { activePubkeys, inactivePubkeys, followedKind0, lastNotes } =
       await categorizePubkeys(followedPubkeys, inactiveMonths);
 
     displayPubkeyInformation(
@@ -73,7 +68,8 @@ document.getElementById("loginButton").addEventListener("click", async () => {
       inactivePubkeys,
       inactivePubkeys.map(nip19.npubEncode), // Assuming you want to display npubs
       activePubkeys,
-      followedKind0
+      followedKind0,
+      lastNotes
     );
 
     // Open the default tab (nonActivePubkeys)
@@ -81,22 +77,36 @@ document.getElementById("loginButton").addEventListener("click", async () => {
 
     const createButton = document.getElementById("createKind3EventButton");
     createButton.style.display = "block";
-    createButton.addEventListener("click", async () => {
-      if (confirm("Are you sure you want to create a new kind 3 event?")) {
-        try {
-          await createKind3Event(activePubkeys, eventContent, followedTopics);
-          alert("New kind 3 event created successfully.");
-        } catch (error) {
-          alert("Failed to create kind 3 event.");
-        }
+    // Assign (not add) the handler so repeated runs never stack listeners
+    createButton.onclick = async () => {
+      if (
+        !confirm(
+          `Remove ${inactivePubkeys.length} inactive follows (keeping ${activePubkeys.length}) and publish your updated follow list? Nothing else in the list changes.`
+        )
+      ) {
+        return;
       }
-    });
+      try {
+        const { removed, kept, accepted } = await createKind3Event(
+          inactivePubkeys,
+          kind3Event
+        );
+        alert(
+          `Follow list updated: removed ${removed}, kept ${kept}. Accepted by ${accepted} relay(s).`
+        );
+      } catch (error) {
+        console.error(error);
+        alert(`Failed to update follow list: ${error.message}`);
+      }
+    };
 
     alert(
       "Fetched kind 3 events and processed pubkeys successfully. Check the page for details."
     );
   } catch (error) {
-    alert("Failed to login with Nostr.");
+    console.error(error);
+    alert(`Failed to login with Nostr: ${error.message}`);
+    loginButton.style.display = ""; // allow another attempt without reloading
   } finally {
     loadingSpinner.style.display = "none"; // Hide the spinner after login is complete
   }
@@ -135,13 +145,21 @@ document.querySelectorAll(".tablink").forEach((tablink) => {
 });
 
 /*  Tip Configuration */
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+const tipAmounts = import.meta.env.VITE_TIP_AMOUNTS ?
+  import.meta.env.VITE_TIP_AMOUNTS.split(',').map(Number).filter(Number.isFinite) :
+  [1000, 5000, 10000, 20000];
+
+const QR_ID = import.meta.env.VITE_QR_CONTAINER_ID || 'qr-code-container';
+const SHOW_TIP_BTN_ID = import.meta.env.VITE_SHOW_TIP_BUTTON_ID || 'show-tip-options';
+const TIP_CONTAINER_ID = import.meta.env.VITE_TIP_CONTAINER_ID || 'tip-amount-container';
+const WALLET_BTN_ID = import.meta.env.VITE_WALLET_BUTTON_ID || 'open-wallet';
+
 const lnPay = new SecureLightningPay({
-  paymentSystem: import.meta.env.VITE_PAYMENT_SYSTEM || 'lnbits',
-  tipAmounts: import.meta.env.VITE_TIP_AMOUNTS ? 
-    import.meta.env.VITE_TIP_AMOUNTS.split(',').map(Number) :
-    [1000, 5000, 10000, 20000],
-  targetElement: document.getElementById("qr-code-container"),
-  showTipOptionsButton: document.getElementById("show-tip-options"),
-  tipAmountContainer: document.getElementById("tip-amount-container"),
-  openWalletButton: document.getElementById("open-wallet"),
+  apiBaseUrl,
+  tipAmounts,
+  targetElement: document.getElementById(QR_ID),
+  showTipOptionsButton: document.getElementById(SHOW_TIP_BTN_ID),
+  tipAmountContainer: document.getElementById(TIP_CONTAINER_ID),
+  openWalletButton: document.getElementById(WALLET_BTN_ID),
 });
