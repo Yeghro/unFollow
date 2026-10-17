@@ -42,6 +42,10 @@ body.modal-open {
   background: var(--gradient-normal, linear-gradient(45deg, #ff8c00, #8a2be2));
 }
 
+.modal-warning::before {
+  background: linear-gradient(90deg, #f2a900, #ff8c00);
+}
+
 .modal-error::before {
   background: linear-gradient(90deg, #ff4d4d, #ff8c00);
 }
@@ -58,6 +62,11 @@ body.modal-open {
   font-weight: 700;
   color: #fff;
   background: var(--gradient-normal, linear-gradient(45deg, #ff8c00, #8a2be2));
+  box-shadow: 0 0 24px rgba(242, 169, 0, 0.35);
+}
+
+.modal-warning .modal-icon {
+  background: linear-gradient(45deg, #f2a900, #ff8c00);
   box-shadow: 0 0 24px rgba(242, 169, 0, 0.35);
 }
 
@@ -121,6 +130,23 @@ body.modal-open {
   text-transform: uppercase;
   color: #fff;
   background: var(--gradient-normal, linear-gradient(45deg, #ff8c00, #8a2be2));
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.modal-button-secondary {
+  color: var(--text-color, #e0e0e0);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.modal-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .modal-button:hover {

@@ -14,7 +14,7 @@ import { getInactiveMonths, handleManualPubkeyCheck } from "./input.js";
 import { categorizePubkeys } from "./eventProcessing.js";
 import { createKind3Event } from "./createkind3.js";
 import { SecureLightningPay } from "./lightningTips.js";
-import { showModal } from "./modal.js";
+import { showModal, showConfirm } from "./modal.js";
 
 document.getElementById("loginButton").addEventListener("click", async () => {
   const loginButton = document.getElementById("loginButton");
@@ -80,13 +80,18 @@ document.getElementById("loginButton").addEventListener("click", async () => {
     createButton.style.display = "block";
     // Assign (not add) the handler so repeated runs never stack listeners
     createButton.onclick = async () => {
-      if (
-        !confirm(
-          `Remove ${inactivePubkeys.length} inactive follows (keeping ${activePubkeys.length}) and publish your updated follow list? Nothing else in the list changes.`
-        )
-      ) {
-        return;
-      }
+      const confirmed = await showConfirm({
+        title: "Unfollow inactive users?",
+        message:
+          "This publishes a new follow list without the inactive follows below. Everything else in your list stays the same.",
+        stats: [
+          { label: "Will remove", value: inactivePubkeys.length },
+          { label: "Will keep", value: activePubkeys.length },
+        ],
+        confirmText: "Unfollow",
+        cancelText: "Cancel",
+      });
+      if (!confirmed) return;
       try {
         const { removed, kept, accepted } = await createKind3Event(
           inactivePubkeys,

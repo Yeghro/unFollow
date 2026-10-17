@@ -2,7 +2,7 @@ import "./modal.css";
 
 // Lightweight styled dialog that replaces window.alert() for status notices.
 // Content is set via textContent only, so messages can never inject markup.
-const ICONS = { success: "✓", error: "!", info: "i" };
+const ICONS = { success: "✓", error: "!", info: "i", warning: "?" };
 
 let closeActive = null;
 
@@ -13,13 +13,16 @@ function element(tag, className, text) {
   return node;
 }
 
-// stats: [{ label, value }]. Resolves when the dialog is dismissed.
+// stats: [{ label, value }]. Resolves true when the primary button is used and
+// false when dismissed (Esc, backdrop click or the cancel button). Passing
+// cancelText adds a cancel button and focuses it first (safe default).
 export function showModal({
   type = "info",
   title,
   message = "",
   stats = [],
   buttonText = "Done",
+  cancelText = "",
 }) {
   if (closeActive) closeActive();
 
@@ -55,35 +58,64 @@ export function showModal({
 
     const button = element("button", "modal-button", buttonText);
     button.type = "button";
-    dialog.append(button);
+    const buttons = [button];
+    const actions = element("div", "modal-actions");
+    if (cancelText) {
+      const cancel = element("button", "modal-button modal-button-secondary", cancelText);
+      cancel.type = "button";
+      cancel.addEventListener("click", () => close(false));
+      buttons.unshift(cancel);
+    }
+    actions.append(...buttons);
+    dialog.append(actions);
     overlay.append(dialog);
 
-    const close = () => {
+    const close = (confirmed = true) => {
       document.removeEventListener("keydown", onKeyDown);
       overlay.remove();
       document.body.classList.remove("modal-open");
       closeActive = null;
       if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
-      resolve();
+      resolve(confirmed);
     };
     const onKeyDown = (event) => {
-      if (event.key === "Escape") close();
-      // The button is the only focusable element: keep focus inside the dialog
+      if (event.key === "Escape") close(false);
+      // Keep focus inside the dialog, cycling through its buttons
       if (event.key === "Tab") {
         event.preventDefault();
-        button.focus();
+        const index = buttons.indexOf(document.activeElement);
+        const step = event.shiftKey ? -1 : 1;
+        buttons[(index + step + buttons.length) % buttons.length].focus();
       }
     };
 
-    button.addEventListener("click", close);
+    button.addEventListener("click", () => close(true));
     overlay.addEventListener("click", (event) => {
-      if (event.target === overlay) close();
+      if (event.target === overlay) close(false);
     });
     document.addEventListener("keydown", onKeyDown);
 
-    closeActive = close;
+    closeActive = () => close(false);
     document.body.classList.add("modal-open");
     document.body.append(overlay);
-    button.focus();
+    buttons[0].focus();
+  });
+}
+
+// Styled replacement for window.confirm(); resolves true only on the primary button.
+export function showConfirm({
+  title,
+  message,
+  stats,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+}) {
+  return showModal({
+    type: "warning",
+    title,
+    message,
+    stats,
+    buttonText: confirmText,
+    cancelText,
   });
 }
