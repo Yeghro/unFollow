@@ -147,33 +147,7 @@ document.getElementById("loginButton").addEventListener("click", async () => {
 
 document
   .getElementById("checkManualPubkeyButton")
-  .addEventListener("click", async () => {
-    try {
-      const result = await handleManualPubkeyCheck();
-      if (result) {
-        const {
-          totalPubkeys,
-          nonActivePubkeys,
-          nonActiveNpubs,
-          activePubkeys,
-          kind0Events,
-        } = result;
-        displayPubkeyInformation(
-          totalPubkeys,
-          nonActivePubkeys,
-          nonActiveNpubs,
-          activePubkeys,
-          kind0Events
-        );
-      }
-    } catch (error) {
-      showModal({
-        type: "error",
-        title: "Pubkey check failed",
-        message: "Failed to check manual pubkey.",
-      });
-    }
-  });
+  .addEventListener("click", handleManualPubkeyCheck);
 
 document.querySelectorAll(".tablink").forEach((tablink) => {
   tablink.addEventListener("click", (event) =>
