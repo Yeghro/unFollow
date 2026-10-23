@@ -1,65 +1,79 @@
 import qrcode from "qrcode-generator";
 
+// SecureLightningPay class handles Lightning Network payments via the local server API
 export class SecureLightningPay {
+  // Constructor initializes payment configuration
   constructor(config) {
+    // Base URL for API requests
+    this.apiBaseUrl = config.apiBaseUrl || '';
+    // Available tip amounts in sats
+    this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
+    this.amount = config.amount;
+    this._pollRun = 0;
+
+    // DOM elements for UI interaction
     this.targetElement = config.targetElement;
+    this.qrCodeContainer = config.targetElement;
     this.showTipOptionsButton = config.showTipOptionsButton;
     this.tipAmountContainer = config.tipAmountContainer;
     this.openWalletButton = config.openWalletButton;
-    this.tipAmounts = config.tipAmounts || [1000, 5000, 10000, 20000];
-    this.paymentSystem = config.paymentSystem || 'lnbits';
 
+    if (!this.qrCodeContainer || !this.openWalletButton || !this.tipAmountContainer) {
+      throw new Error('Required UI elements not provided');
+    }
+
+    // Initialize the UI elements
     this.initializeUI();
   }
 
-  async generateQRCode() {
-    try {
-      const invoiceData = await this.getInvoiceData();
-      if (!invoiceData || !invoiceData.pr) {
-        throw new Error("Invalid invoice data received");
-      }
-      this.renderQRCode(invoiceData.pr);
-      this.showQRCodeContainer();
-    } catch (error) {
-      this.handleError("Failed to generate QR code", error);
-    }
-  }
+  // Main payment flow methods:
+  // 1. getInvoiceData: Gets invoice via server API
+  // 2. createInvoice: Creates invoice via server API
+  // 3. checkPayment: Monitors payment status via server API
+
+  // Helper methods for UI handling:
+  // - initializeUI: Sets up event listeners
+  // - showTipOptions: Displays tip amount buttons
+  // - handleTip: Processes tip amount selection
+  // - displayInvoice: Shows invoice QR code
+  // - renderQRCode: Generates QR code image
 
   async getInvoiceData() {
-    switch (this.paymentSystem) {
-      case "getalby":
-        const lnurlParams = await this.fetchLNURLParams();
-        if (!lnurlParams.callback) {
-          throw new Error("Invalid LNURL params: missing callback URL");
-        }
-        const callbackUrl = new URL(lnurlParams.callback);
-        callbackUrl.searchParams.append("amount", this.amount * 1000);
-        if (lnurlParams.metadata) {
-          callbackUrl.searchParams.append("metadata", lnurlParams.metadata);
-        }
-        return this.createInvoice(callbackUrl.toString());
-      case "lnbits":
-        return this.createInvoice();
-      default:
-        throw new Error("Invalid payment system configured");
-    }
+    return await this.createInvoice();
   }
 
-  async fetchLNURLParams() {
-    const response = await fetch(`/api/fetch-lnurl-params/${encodeURIComponent(this.albyAccountId)}`);
+  async createInvoice() {
+    // Create invoice using the server API
+    const requestBody = {
+      amount: this.amount
+    };
+
+    const response = await fetch(`${this.apiBaseUrl}/api/create-invoice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`Failed to create invoice: ${response.status}`);
     }
+
     return await response.json();
   }
 
-  async checkPayment(paymentHash) {
+  async checkPayment(paymentIdentifier) {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentHash}`);
+      // Time-box each status request so a hung connection can't stall the poller
+      const response = await fetch(`${this.apiBaseUrl}/api/check-payment/${paymentIdentifier}`, {
+        signal: AbortSignal.timeout(10000)
+      });
       if (!response.ok) {
-        throw new Error('Failed to check payment status');
+        throw new Error(`Failed to check payment status: ${response.status}`);
       }
-      return response.json();
+      const data = await response.json();
+      return { paid: data.paid };
     } catch (error) {
       console.error('Error checking payment:', error);
       throw error;
@@ -68,7 +82,7 @@ export class SecureLightningPay {
 
   initializeUI() {
     this.showTipOptionsButton.addEventListener('click', () => this.showTipOptions());
-    this.tipAmountContainer.innerHTML = this.tipAmounts.map(amount => 
+    this.tipAmountContainer.innerHTML = this.tipAmounts.map(amount =>
       `<button class="tip-amount-button" data-amount="${amount}">${amount} sats</button>`
     ).join('');
     this.tipAmountContainer.addEventListener('click', (e) => {
@@ -83,117 +97,152 @@ export class SecureLightningPay {
   }
 
   async handleTip(amount) {
+    // Disable tip buttons while a request is in flight
+    const buttons = this.tipAmountContainer.querySelectorAll('.tip-amount-button');
+    buttons.forEach(btn => btn.disabled = true);
+
     try {
-      const response = await fetch('/api/create-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          amount,
-          paymentSystem: this.paymentSystem 
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Payment error: ${errorData.error}`);
+      this.amount = parseInt(amount, 10);
+      if (isNaN(this.amount) || this.amount <= 0) {
+        this.handleError('Invalid amount. Please try again.', amount);
+        return;
       }
-
-      const invoiceData = await response.json();
+      const invoiceData = await this.getInvoiceData();
+      this.cancelPaymentCheck(); // stop polling the previous invoice
       await this.displayInvoice(invoiceData);
-      this.startPaymentCheck(invoiceData.paymentHash);
     } catch (error) {
       this.handleError('Error handling tip:', error);
+    } finally {
+      buttons.forEach(btn => btn.disabled = false);
     }
   }
 
   displayInvoice(invoiceData) {
-    console.log('Received invoice data:', invoiceData); // Debug log
-    
-    if (invoiceData && invoiceData.paymentRequest) {
-        this.renderQRCode(invoiceData.paymentRequest);
-        this.showQRCodeContainer();
-        
-        if (this.openWalletButton) {
-            this.openWalletButton.href = `lightning:${invoiceData.paymentRequest}`;
-            this.openWalletButton.style.display = "block";
-        }
-    } else if (invoiceData && invoiceData.payment_request) { // Add this fallback
-        this.renderQRCode(invoiceData.payment_request);
-        this.showQRCodeContainer();
-        
-        if (this.openWalletButton) {
-            this.openWalletButton.href = `lightning:${invoiceData.payment_request}`;
-            this.openWalletButton.style.display = "block";
-        }
+    let paymentRequest;
+
+    // Both LNbits and Coinos come back normalized from our server
+    paymentRequest = invoiceData?.paymentRequest || invoiceData?.payment_request;
+
+    if (paymentRequest) {
+      this.renderQRCode(paymentRequest);
+      this.showQRCodeContainer();
+      if (this.openWalletButton) {
+        this.openWalletButton.href = `lightning:${paymentRequest}`;
+        this.openWalletButton.style.display = "block";
+      } else {
+        console.error('Open Wallet button not found');
+      }
+
+      // Start payment check
+      if (invoiceData.paymentHash) {
+        this.startPaymentCheck(invoiceData.paymentHash);
+      }
     } else {
         throw new Error(`Invalid invoice data: ${JSON.stringify(invoiceData)}`);
     }
   }
 
+  // Stop the active poller (if any) and invalidate its in-flight callbacks
+  cancelPaymentCheck() {
+    if (this._pollInterval) {
+      clearInterval(this._pollInterval);
+      this._pollInterval = null;
+    }
+    this._pollRun++;
+  }
+
   startPaymentCheck(paymentHash) {
+    // Cancel any previous poller to avoid stacking
+    this.cancelPaymentCheck();
+    // Generation token: results from superseded pollers are ignored
+    const run = this._pollRun;
+    let consecutiveErrors = 0;
+    let inFlight = false;
+    const deadline = Date.now() + 5 * 60 * 1000; // 5 minutes maximum, wall-clock
+    const maxConsecutiveErrors = 3;
+
+    const stop = () => {
+      clearInterval(checkInterval);
+      this._pollInterval = null;
+    };
+
     const checkInterval = setInterval(async () => {
+      if (Date.now() >= deadline) {
+        stop();
+        this.handleFailedPayment();
+        return;
+      }
+      if (inFlight) return;
+      inFlight = true;
       try {
         const { paid } = await this.checkPayment(paymentHash);
+        if (run !== this._pollRun) return;
+        consecutiveErrors = 0;
+
         if (paid) {
-          clearInterval(checkInterval);
+          stop();
           this.handleSuccessfulPayment();
         }
       } catch (error) {
+        if (run !== this._pollRun) return;
         console.error('Error checking payment:', error);
+        consecutiveErrors++;
+        if (consecutiveErrors >= maxConsecutiveErrors) {
+          stop();
+          this.handleFailedPayment();
+        }
+      } finally {
+        inFlight = false;
       }
     }, 5000);
+
+    this._pollInterval = checkInterval;
   }
 
   handleSuccessfulPayment() {
+    if (!this.qrCodeContainer || !this.openWalletButton || !this.tipAmountContainer) {
+      console.error('UI elements not found');
+      return;
+    }
+
     alert('Payment received! Thank you for your tip.');
     this.qrCodeContainer.style.display = 'none';
     this.openWalletButton.style.display = 'none';
     this.tipAmountContainer.style.display = 'none';
   }
 
-  renderQRCode(paymentRequest) {
-    this.targetElement.innerHTML = "";
+  handleFailedPayment() {
+    console.error('Payment verification timeout or error');
+    alert('Payment verification failed or timed out. Please try again.');
+  }
 
-    try {
-      const qr = qrcode(0, "L");
-      qr.addData(paymentRequest);
-      qr.make();
-      const qrCodeImg = qr.createImgTag(5);
-      this.targetElement.innerHTML = qrCodeImg;
-    } catch (error) {
-      this.handleError("Failed to generate QR code", error);
+  renderQRCode(paymentRequest) {
+    if (!this.qrCodeContainer) {
+      console.error('QR code container not found');
       return;
     }
 
-  } 
+    // Clear previous QR code
+    this.qrCodeContainer.innerHTML = '';
+
+    // Generate QR code
+    const qr = qrcode(0, 'L');
+    qr.addData(paymentRequest);
+    qr.make();
+
+    // Create QR code image
+    const qrImage = qr.createImgTag(5);
+    this.qrCodeContainer.innerHTML = qrImage;
+  }
 
   showQRCodeContainer() {
-    this.targetElement.style.display = 'block';
-  } 
+    if (this.qrCodeContainer) {
+      this.qrCodeContainer.style.display = 'block';
+    }
+  }
 
   handleError(message, error) {
     console.error(message, error);
     alert(message);
   }
 }
-
-
-// Usage
-// const lnbitsKey = import.meta.env.VITE_LNBITS_INVOICE_KEY;
-
-// const lnPay = new SecureLightningPay({
-//   paymentSystem: "lnbits", // or 'getalby', depending on admin configuration
-//   albyAccountId: "yeghro", // Your Alby account ID (if using Getalby)
-//   lnbitsUrl: "https://lnbits.yeghro.site", // Your LNbits instance URL (if using LNbits)
-//   lnbitsWalletId: lnbitsKey, // Your LNbits wallet ID (if using LNbits)
-//   tipAmounts: [100, 1000, 5000, 10000], // Array of tip amount options in sats
-//   targetElement: document.getElementById("qr-code-container"),
-//   showTipOptionsButton: document.getElementById("show-tip-options"),
-//   tipAmountContainer: document.getElementById("tip-amount-container"),
-//   openWalletButton: document.getElementById("open-wallet"),
-// });
-
-// The click event listener is now set up in the constructor, so you don't need this:
-// document.getElementById("generate-qr").addEventListener("click", () => {
-//   lnPay.generateQRCode();
-// });

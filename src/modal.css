@@ -1,0 +1,171 @@
+/* Status dialogs. Bundled with src/modal.js (imported there) so the styles always
+   ship with the script, independent of the separately cached /style.css. */
+/* Status dialogs (src/modal.js) */
+body.modal-open {
+  overflow: hidden;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: modal-fade 0.2s ease;
+}
+
+.modal-dialog {
+  position: relative;
+  width: min(440px, 100%);
+  box-sizing: border-box;
+  padding: 36px 28px 28px;
+  overflow: hidden;
+  text-align: center;
+  background: var(--container-bg, #1e1e1e);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(169, 21, 255, 0.15);
+  animation: modal-pop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.modal-dialog::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--gradient-normal, linear-gradient(45deg, #ff8c00, #8a2be2));
+}
+
+.modal-warning::before {
+  background: linear-gradient(90deg, #f2a900, #ff8c00);
+}
+
+.modal-error::before {
+  background: linear-gradient(90deg, #ff4d4d, #ff8c00);
+}
+
+.modal-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--gradient-normal, linear-gradient(45deg, #ff8c00, #8a2be2));
+  box-shadow: 0 0 24px rgba(242, 169, 0, 0.35);
+}
+
+.modal-warning .modal-icon {
+  background: linear-gradient(45deg, #f2a900, #ff8c00);
+  box-shadow: 0 0 24px rgba(242, 169, 0, 0.35);
+}
+
+.modal-error .modal-icon {
+  background: linear-gradient(45deg, #ff4d4d, #ff8c00);
+  box-shadow: 0 0 24px rgba(255, 77, 77, 0.35);
+}
+
+.modal-dialog .modal-title {
+  margin: 0 0 10px;
+  font-size: 1.3rem;
+  color: var(--primary-color, #F2A900);
+}
+
+.modal-message {
+  margin: 0 0 22px;
+  line-height: 1.5;
+  color: var(--text-color, #e0e0e0);
+  overflow-wrap: anywhere;
+}
+
+.modal-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+  margin: 0 0 24px;
+}
+
+.modal-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--common-border-radius, 10px);
+}
+
+.modal-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--primary-color, #F2A900);
+}
+
+.modal-stat-label {
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(224, 224, 224, 0.7);
+}
+
+.modal-button {
+  min-width: 140px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--gradient-normal, linear-gradient(45deg, #ff8c00, #8a2be2));
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.modal-button-secondary {
+  color: var(--text-color, #e0e0e0);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.modal-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modal-button:hover {
+  filter: brightness(1.15);
+}
+
+@keyframes modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-dialog {
+    animation: none;
+  }
+}
